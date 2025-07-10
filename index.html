@@ -473,14 +473,16 @@
 
         .login-container {
             position: fixed;
-            top: 20px;
-            right: 20px;
-            width: 350px;
-            padding: 1.5rem;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 400px;
+            padding: 2rem;
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
-            border-radius: 15px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
             border: 1px solid rgba(255, 255, 255, 0.3);
             z-index: 1500;
         }
@@ -489,7 +491,7 @@
             text-align: center;
             margin-bottom: 1.5rem;
             color: #333;
-            font-size: 1.3rem;
+            font-size: 1.5rem;
         }
 
         .notification {
@@ -503,6 +505,7 @@
             z-index: 3000;
             transform: translateX(400px);
             transition: transform 0.3s ease;
+            max-width: 300px;
         }
 
         .notification.show {
@@ -542,12 +545,13 @@
 
         .password-toggle {
             position: absolute;
-            right: 10px;
+            right: 15px;
             top: 50%;
             transform: translateY(-50%);
             cursor: pointer;
             color: #666;
             font-size: 1.2rem;
+            user-select: none;
         }
 
         .data-stats {
@@ -574,6 +578,21 @@
             color: #4facfe;
         }
 
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: white;
+        }
+
+        .error-message {
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            color: #ff6b6b;
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+        }
+
         @media (max-width: 768px) {
             .hero h1 {
                 font-size: 2.5rem;
@@ -597,53 +616,48 @@
             }
 
             .login-container {
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                width: 100%;
-                height: 100vh;
-                border-radius: 0;
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                align-items: center;
+                width: 95%;
+                padding: 1.5rem;
+            }
+
+            .modal-content {
+                margin: 5% auto;
+                width: 95%;
             }
         }
     </style>
 </head>
 <body>
+    <!-- Login Screen -->
     <div id="loginScreen" class="login-container">
         <h2>🔐 Admin Login</h2>
         <div class="form-group">
             <label for="adminPassword">Password:</label>
             <div class="password-container">
-                <input type="password" id="adminPassword" placeholder="Masukkan password admin">
+                <input type="password" id="adminPassword" placeholder="Masukkan password admin" autocomplete="current-password">
                 <span class="password-toggle" onclick="togglePasswordVisibility()">👁️</span>
             </div>
         </div>
-        <button class="btn" onclick="login()">Login</button>
-        <div style="margin-top: 1rem; text-align: center;">
-            <button class="btn" onclick="showPublicView()">Lihat Sebagai Customer</button>
-        </div>
+        <button class="btn" onclick="adminLogin()" style="width: 100%; margin-bottom: 1rem;">Login Admin</button>
+        <button class="btn" onclick="customerLogin()" style="width: 100%; background: linear-gradient(45deg, #4ecdc4, #44a08d);">Lihat Sebagai Customer</button>
     </div>
 
+    <!-- Main Content -->
     <div id="mainContent" style="display: none;">
         <header class="header">
             <div class="nav-container">
                 <a href="#" class="logo">🛍️ Meili China Jastip</a>
-                <nav class="nav-links">
-                    <a href="#home">Home</a>
-                    <a href="#products">Produk</a>
-                    <a href="#about">Tentang</a>
-                    <a href="#contact">Kontak</a>
-                    <button class="nav-btn" id="adminToggle" onclick="toggleAdmin()">Admin Panel</button>
+                <nav class="nav-links" id="navLinks">
+                    <a href="#home" onclick="scrollToSection('home')">Home</a>
+                    <a href="#products" onclick="scrollToSection('products')">Produk</a>
+                    <a href="#contact" onclick="scrollToSection('contact')">Kontak</a>
+                    <button class="nav-btn" id="adminToggle" onclick="toggleAdminPanel()" style="display: none;">Admin Panel</button>
                     <button class="nav-btn" onclick="logout()">Logout</button>
                 </nav>
             </div>
         </header>
 
+        <!-- Admin Panel -->
         <div id="adminPanel" class="admin-panel">
             <h3 style="color: white; margin-bottom: 1rem;">🛠️ Admin Panel</h3>
             
@@ -658,6 +672,10 @@
                         <div class="stat-number" id="totalCategories">0</div>
                         <div>Total Kategori</div>
                     </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="totalOrders">0</div>
+                        <div>Total Pesanan</div>
+                    </div>
                 </div>
             </div>
             
@@ -665,40 +683,42 @@
                 <button class="admin-btn" onclick="openAddProductModal()">➕ Tambah Produk</button>
                 <button class="admin-btn" onclick="openAddCategoryModal()">📂 Tambah Kategori</button>
                 <button class="admin-btn" onclick="manageCategoriesView()">📋 Kelola Kategori</button>
-                <button class="admin-btn danger" onclick="clearAllData()">🗑️ Hapus Semua Data</button>
+                <button class="admin-btn danger" onclick="clearAllData()">🗑️ Reset Data</button>
             </div>
             
             <div class="backup-section">
                 <h4>💾 Backup & Restore Data</h4>
                 <div class="backup-buttons">
-                    <button class="admin-btn" onclick="backupData()">📥 Backup Data</button>
-                    <button class="admin-btn" onclick="document.getElementById('restoreFile').click()">📤 Restore Data</button>
+                    <button class="admin-btn" onclick="backupData()">📥 Download Backup</button>
+                    <button class="admin-btn" onclick="document.getElementById('restoreFile').click()">📤 Upload Restore</button>
                     <input type="file" id="restoreFile" accept=".json" style="display: none;" onchange="restoreData(this)">
                 </div>
             </div>
         </div>
 
+        <!-- Hero Section -->
         <section class="hero" id="home">
             <h1>Jastip China Terpercaya</h1>
             <p>Dapatkan produk-produk berkualitas langsung dari China dengan harga terjangkau!</p>
             <div class="search-bar">
-                <input type="text" placeholder="Cari produk yang kamu inginkan..." id="searchInput">
+                <input type="text" placeholder="Cari produk yang kamu inginkan..." id="searchInput" onkeyup="handleSearch(event)">
                 <button class="search-btn" onclick="searchProducts()">🔍 Cari</button>
             </div>
         </section>
 
+        <!-- Main Content -->
         <main class="main-content">
+            <!-- Categories Section -->
             <section class="categories" id="categoriesSection">
-                <div class="category-card" onclick="filterProducts('all')">
-                    <h3>🛍️ Semua Produk</h3>
-                    <p>Lihat semua produk</p>
-                </div>
+                <!-- Categories will be loaded here -->
             </section>
 
+            <!-- Products Section -->
             <section class="products" id="products">
                 <!-- Products will be loaded here -->
             </section>
 
+            <!-- Contact Section -->
             <section class="contact-info" id="contact">
                 <h3>📞 Hubungi Kami</h3>
                 <div class="contact-details">
@@ -720,16 +740,16 @@
 
         <footer class="footer">
             <p>&copy; 2024 Meili China Jastip. Jasa Titip Terpercaya dari China.</p>
-            <p>🚀 Powered by Advanced Admin System</p>
+            <p>🚀 Powered by Advanced Admin System v2.0</p>
         </footer>
     </div>
 
-    <!-- Modals -->
+    <!-- Order Modal -->
     <div id="orderModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeModal('orderModal')">&times;</span>
             <h3>📋 Form Pemesanan</h3>
-            <form class="order-form">
+            <div id="orderForm">
                 <div class="form-group">
                     <label>Produk:</label>
                     <input type="text" id="orderProductName" readonly>
@@ -744,21 +764,22 @@
                 </div>
                 <div class="form-group">
                     <label>Nomor WhatsApp:</label>
-                    <input type="tel" id="customerPhone" placeholder="Nomor WhatsApp" required>
+                    <input type="tel" id="customerPhone" placeholder="08xxxxxxxxxx" required>
                 </div>
                 <div class="form-group">
                     <label>Alamat Lengkap:</label>
-                    <input type="text" id="customerAddress" placeholder="Alamat Lengkap" required>
+                    <textarea id="customerAddress" placeholder="Alamat lengkap dengan kota dan kode pos" rows="3" required></textarea>
                 </div>
                 <div class="form-group">
                     <label>Catatan (opsional):</label>
-                    <textarea id="customerNotes" placeholder="Catatan tambahan" rows="3"></textarea>
+                    <textarea id="customerNotes" placeholder="Warna, ukuran, atau catatan khusus" rows="2"></textarea>
                 </div>
-                <button type="button" class="btn" onclick="submitOrder()">📱 Kirim Pesanan via WhatsApp</button>
-            </form>
+                <button type="button" class="btn" onclick="submitOrder()" style="width: 100%;">📱 Kirim Pesanan via WhatsApp</button>
+            </div>
         </div>
     </div>
 
+    <!-- Product Modal -->
     <div id="productModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeModal('productModal')">&times;</span>
@@ -766,11 +787,11 @@
             <form id="productForm">
                 <div class="form-group">
                     <label>Nama Produk:</label>
-                    <input type="text" id="productName" required>
+                    <input type="text" id="productName" placeholder="Contoh: Dress Korea Style" required>
                 </div>
                 <div class="form-group">
-                    <label>Harga:</label>
-                    <input type="number" id="productPrice" placeholder="Harga dalam Rupiah" required>
+                    <label>Harga (Rupiah):</label>
+                    <input type="number" id="productPrice" placeholder="150000" min="0" required>
                 </div>
                 <div class="form-group">
                     <label>Kategori:</label>
@@ -780,7 +801,7 @@
                 </div>
                 <div class="form-group">
                     <label>Deskripsi:</label>
-                    <textarea id="productDescription" rows="4" required></textarea>
+                    <textarea id="productDescription" rows="4" placeholder="Deskripsi detail produk..." required></textarea>
                 </div>
                 <div class="form-group">
                     <label>Upload Gambar:</label>
@@ -792,14 +813,15 @@
                     </div>
                     <img id="imagePreview" class="image-preview" style="display: none;">
                     <small style="color: #666; margin-top: 0.5rem; display: block;">
-                        Format yang didukung: JPG, PNG, GIF. Maksimal 5MB.
+                        Format: JPG, PNG, GIF. Maksimal 5MB.
                     </small>
                 </div>
-                <button type="submit" class="btn">💾 Simpan Produk</button>
+                <button type="submit" class="btn" style="width: 100%;">💾 Simpan Produk</button>
             </form>
         </div>
     </div>
 
+    <!-- Category Modal -->
     <div id="categoryModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeModal('categoryModal')">&times;</span>
@@ -807,143 +829,95 @@
             <form id="categoryForm">
                 <div class="form-group">
                     <label>Nama Kategori:</label>
-                    <input type="text" id="categoryName" required>
+                    <input type="text" id="categoryName" placeholder="Contoh: Fashion" required>
                 </div>
                 <div class="form-group">
                     <label>Emoji:</label>
-                    <input type="text" id="categoryEmoji" placeholder="Pilih emoji untuk kategori" required>
+                    <input type="text" id="categoryEmoji" placeholder="👗" maxlength="2" required>
                 </div>
                 <div class="form-group">
                     <label>Deskripsi:</label>
-                    <input type="text" id="categoryDescription" placeholder="Deskripsi singkat" required>
+                    <input type="text" id="categoryDescription" placeholder="Pakaian & Aksesoris" required>
                 </div>
-                <button type="submit" class="btn">💾 Simpan Kategori</button>
+                <button type="submit" class="btn" style="width: 100%;">💾 Simpan Kategori</button>
             </form>
         </div>
     </div>
 
+    <!-- Notification -->
     <div id="notification" class="notification"></div>
 
     <script>
-        // Enhanced data persistence with encryption
+        // ===== GLOBAL VARIABLES =====
+        let appState = {
+            currentUser: null,
+            products: [],
+            categories: [],
+            orders: [],
+            editingProductId: null,
+            editingCategoryId: null,
+            currentFilter: 'all',
+            searchTerm: ''
+        };
+
+        const CONFIG = {
+            adminPassword: 'meili2024!@#',
+            storageKey: 'meiliJastipData',
+            maxImageSize: 5 * 1024 * 1024, // 5MB
+            allowedImageTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'],
+            whatsappNumber: '6282276882317'
+        };
+
+        // ===== DATA MANAGEMENT =====
         class DataManager {
-            constructor() {
-                this.storageKey = 'meiliJastipData';
-                this.init();
-            }
-
-            init() {
-                this.loadData();
-                this.setupAutoSave();
-                this.setupVersionControl();
-            }
-
-            encode(data) {
-                return btoa(JSON.stringify(data));
-            }
-
-            decode(encodedData) {
+            static saveData() {
                 try {
-                    return JSON.parse(atob(encodedData));
-                } catch(e) {
-                    return null;
+                    const data = {
+                        products: appState.products,
+                        categories: appState.categories,
+                        orders: appState.orders,
+                        version: '2.0',
+                        timestamp: new Date().toISOString()
+                    };
+                    localStorage.setItem(CONFIG.storageKey, JSON.stringify(data));
+                    console.log('Data saved successfully');
+                    return true;
+                } catch (error) {
+                    console.error('Error saving data:', error);
+                    showNotification('Error menyimpan data!', 'error');
+                    return false;
                 }
             }
 
-            saveData() {
-                const data = {
-                    products: products,
-                    categories: categories,
-                    version: '2.0',
-                    timestamp: new Date().toISOString(),
-                    checksum: this.generateChecksum()
-                };
-                
-                const encodedData = this.encode(data);
-                localStorage.setItem(this.storageKey, encodedData);
-                localStorage.setItem(this.storageKey + '_backup', encodedData);
-                this.updateStats();
-            }
-
-            loadData() {
+            static loadData() {
                 try {
-                    const encodedData = localStorage.getItem(this.storageKey);
-                    if (encodedData) {
-                        const data = this.decode(encodedData);
-                        if (data && this.validateData(data)) {
-                            products = data.products || [];
-                            categories = data.categories || this.getDefaultCategories();
-                            return true;
-                        }
+                    const savedData = localStorage.getItem(CONFIG.storageKey);
+                    if (savedData) {
+                        const data = JSON.parse(savedData);
+                        appState.products = data.products || [];
+                        appState.categories = data.categories || this.getDefaultCategories();
+                        appState.orders = data.orders || [];
+                        console.log('Data loaded successfully');
+                        return true;
                     }
-                } catch(e) {
-                    console.error('Error loading data:', e);
-                    this.loadBackup();
+                } catch (error) {
+                    console.error('Error loading data:', error);
                 }
-                
-                this.loadDefaults();
+                this.loadDefaultData();
                 return false;
             }
 
-            loadBackup() {
-                try {
-                    const backupData = localStorage.getItem(this.storageKey + '_backup');
-                    if (backupData) {
-                        const data = this.decode(backupData);
-                        if (data && this.validateData(data)) {
-                            products = data.products || [];
-                            categories = data.categories || this.getDefaultCategories();
-                            showNotification('Data dipulihkan dari backup!', 'success');
-                            return;
-                        }
-                    }
-                } catch(e) {
-                    console.error('Error loading backup:', e);
-                }
-            }
-
-            validateData(data) {
-                return data && 
-                       Array.isArray(data.products) && 
-                       Array.isArray(data.categories) &&
-                       data.version;
-            }
-
-            generateChecksum() {
-                const dataString = JSON.stringify(products) + JSON.stringify(categories);
-                let hash = 0;
-                for (let i = 0; i < dataString.length; i++) {
-                    const char = dataString.charCodeAt(i);
-                    hash = ((hash << 5) - hash) + char;
-                    hash = hash & hash;
-                }
-                return hash;
-            }
-
-            setupAutoSave() {
-                setInterval(() => {
-                    this.saveData();
-                }, 30000); // Auto-save every 30 seconds
-            }
-
-            setupVersionControl() {
-                window.addEventListener('beforeunload', () => {
-                    this.saveData();
-                });
-            }
-
-            getDefaultCategories() {
+            static getDefaultCategories() {
                 return [
-                    { id: 'fashion', name: 'Fashion', emoji: '👗', description: 'Pakaian & Aksesoris' },
-                    { id: 'electronics', name: 'Elektronik', emoji: '📱', description: 'Gadget & Teknologi' },
-                    { id: 'cosmetics', name: 'Kosmetik', emoji: '💄', description: 'Skincare & Makeup' },
-                    { id: 'toys', name: 'Mainan', emoji: '🧸', description: 'Toys & Hobbies' }
+                    { id: 'fashion', name: 'Fashion', emoji: '👗', description: 'Pakaian & Aksesoris', createdAt: new Date().toISOString() },
+                    { id: 'electronics', name: 'Elektronik', emoji: '📱', description: 'Gadget & Teknologi', createdAt: new Date().toISOString() },
+                    { id: 'cosmetics', name: 'Kosmetik', emoji: '💄', description: 'Skincare & Makeup', createdAt: new Date().toISOString() },
+                    { id: 'toys', name: 'Mainan', emoji: '🧸', description: 'Toys & Hobbies', createdAt: new Date().toISOString() }
                 ];
             }
 
-            loadDefaults() {
-                categories = this.getDefaultCategories();
-                products = [
+            static getDefaultProducts() {
+                return [
                     {
                         id: 'prod1',
                         name: 'Dress Korea Style',
@@ -985,22 +959,21 @@
                         createdAt: new Date().toISOString()
                     }
                 ];
+            }
+
+            static loadDefaultData() {
+                appState.categories = this.getDefaultCategories();
+                appState.products = this.getDefaultProducts();
+                appState.orders = [];
                 this.saveData();
+                console.log('Default data loaded');
             }
 
-            updateStats() {
-                if (document.getElementById('totalProducts')) {
-                    document.getElementById('totalProducts').textContent = products.length;
-                }
-                if (document.getElementById('totalCategories')) {
-                    document.getElementById('totalCategories').textContent = categories.length;
-                }
-            }
-
-            exportData() {
+            static exportData() {
                 const data = {
-                    products: products,
-                    categories: categories,
+                    products: appState.products,
+                    categories: appState.categories,
+                    orders: appState.orders,
                     exported: new Date().toISOString(),
                     version: '2.0',
                     appName: 'Meili China Jastip'
@@ -1008,52 +981,39 @@
                 return JSON.stringify(data, null, 2);
             }
 
-            importData(jsonData) {
+            static importData(jsonData) {
                 try {
                     const data = JSON.parse(jsonData);
-                    if (this.validateData(data)) {
-                        products = data.products || [];
-                        categories = data.categories || this.getDefaultCategories();
+                    if (data.products && Array.isArray(data.products) && 
+                        data.categories && Array.isArray(data.categories)) {
+                        appState.products = data.products;
+                        appState.categories = data.categories;
+                        appState.orders = data.orders || [];
                         this.saveData();
                         return true;
                     }
                     return false;
-                } catch(e) {
-                    console.error('Import error:', e);
+                } catch (error) {
+                    console.error('Import error:', error);
                     return false;
                 }
             }
 
-            clearAllData() {
-                localStorage.removeItem(this.storageKey);
-                localStorage.removeItem(this.storageKey + '_backup');
-                this.loadDefaults();
+            static clearAllData() {
+                localStorage.removeItem(CONFIG.storageKey);
+                this.loadDefaultData();
             }
         }
 
-        // Initialize data manager
-        const dataManager = new DataManager();
-        let products = [];
-        let categories = [];
-        let currentUser = null;
-        let editingProductId = null;
-        let editingCategoryId = null;
-
-        // Security
-        const ADMIN_PASSWORD = 'meili2024!@#';
-
-        // Enhanced image handling
+        // ===== IMAGE HANDLING =====
         class ImageManager {
             static validateImage(file) {
-                const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
-                const maxSize = 5 * 1024 * 1024; // 5MB
-
-                if (!validTypes.includes(file.type)) {
+                if (!CONFIG.allowedImageTypes.includes(file.type)) {
                     showNotification('Format gambar tidak didukung! Gunakan JPG, PNG, atau GIF.', 'error');
                     return false;
                 }
 
-                if (file.size > maxSize) {
+                if (file.size > CONFIG.maxImageSize) {
                     showNotification('Ukuran gambar terlalu besar! Maksimal 5MB.', 'error');
                     return false;
                 }
@@ -1061,17 +1021,16 @@
                 return true;
             }
 
-            static compressImage(file, quality = 0.8) {
+            static compressImage(file, quality = 0.8, maxWidth = 800, maxHeight = 600) {
                 return new Promise((resolve) => {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
                     const img = new Image();
 
                     img.onload = function() {
-                        const maxWidth = 800;
-                        const maxHeight = 600;
                         let { width, height } = img;
 
+                        // Calculate new dimensions
                         if (width > height) {
                             if (width > maxWidth) {
                                 height = (height * maxWidth) / width;
@@ -1086,12 +1045,12 @@
 
                         canvas.width = width;
                         canvas.height = height;
-
                         ctx.drawImage(img, 0, 0, width, height);
                         
                         canvas.toBlob(resolve, 'image/jpeg', quality);
                     };
 
+                    img.onerror = () => resolve(null);
                     img.src = URL.createObjectURL(file);
                 });
             }
@@ -1101,27 +1060,23 @@
 
                 try {
                     const compressedFile = await this.compressImage(file);
+                    if (!compressedFile) throw new Error('Failed to compress image');
+
                     return new Promise((resolve) => {
                         const reader = new FileReader();
                         reader.onload = (e) => resolve(e.target.result);
+                        reader.onerror = () => resolve(null);
                         reader.readAsDataURL(compressedFile);
                     });
                 } catch (error) {
+                    console.error('Image processing error:', error);
                     showNotification('Error memproses gambar!', 'error');
                     return null;
                 }
             }
         }
 
-        // Initialize app
-        function init() {
-            loadCategories();
-            loadProducts();
-            updateCategoryOptions();
-            dataManager.updateStats();
-        }
-
-        // Authentication with enhanced security
+        // ===== AUTHENTICATION =====
         function togglePasswordVisibility() {
             const passwordInput = document.getElementById('adminPassword');
             const toggleBtn = document.querySelector('.password-toggle');
@@ -1135,70 +1090,86 @@
             }
         }
 
-        function login() {
+        function adminLogin() {
             const password = document.getElementById('adminPassword').value;
-            if (password === ADMIN_PASSWORD) {
-                currentUser = 'admin';
-                document.getElementById('loginScreen').style.display = 'none';
-                document.getElementById('mainContent').style.display = 'block';
-                showNotification('Login berhasil! Selamat datang Admin.', 'success');
-                init();
-                
-                // Clear password from memory
-                document.getElementById('adminPassword').value = '';
+            if (password === CONFIG.adminPassword) {
+                appState.currentUser = 'admin';
+                showMainContent();
+                showNotification('Login admin berhasil!', 'success');
+                document.getElementById('adminToggle').style.display = 'inline-block';
             } else {
-                showNotification('Password salah! Silakan coba lagi.', 'error');
-                // Add slight delay to prevent brute force
+                showNotification('Password salah!', 'error');
+                document.getElementById('adminPassword').value = '';
                 setTimeout(() => {
-                    document.getElementById('adminPassword').value = '';
+                    document.getElementById('adminPassword').focus();
                 }, 1000);
             }
         }
 
-        function showPublicView() {
-            currentUser = 'customer';
+        function customerLogin() {
+            appState.currentUser = 'customer';
+            showMainContent();
+            showNotification('Selamat datang!', 'success');
+            document.getElementById('adminToggle').style.display = 'none';
+        }
+
+        function showMainContent() {
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('mainContent').style.display = 'block';
-            document.getElementById('adminToggle').style.display = 'none';
-            document.querySelector('button[onclick="logout()"]').style.display = 'none';
-            init();
+            document.getElementById('adminPassword').value = '';
+            initializeApp();
         }
 
         function logout() {
-            currentUser = null;
+            appState.currentUser = null;
             document.getElementById('loginScreen').style.display = 'block';
             document.getElementById('mainContent').style.display = 'none';
             document.getElementById('adminPanel').style.display = 'none';
-            document.getElementById('adminPassword').value = '';
             showNotification('Logout berhasil!', 'success');
         }
 
-        // Admin panel toggle
-        function toggleAdmin() {
-            if (currentUser !== 'admin') return;
+        // ===== ADMIN PANEL =====
+        function toggleAdminPanel() {
+            if (appState.currentUser !== 'admin') return;
             const panel = document.getElementById('adminPanel');
             panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
         }
 
-        // Enhanced product management
+        function updateStats() {
+            document.getElementById('totalProducts').textContent = appState.products.length;
+            document.getElementById('totalCategories').textContent = appState.categories.length;
+            document.getElementById('totalOrders').textContent = appState.orders.length;
+        }
+
+        // ===== PRODUCT MANAGEMENT =====
         function openAddProductModal() {
-            editingProductId = null;
+            if (appState.currentUser !== 'admin') return;
+            
+            appState.editingProductId = null;
             document.getElementById('productModalTitle').textContent = '➕ Tambah Produk Baru';
             document.getElementById('productForm').reset();
             document.getElementById('imagePreview').style.display = 'none';
+            updateCategoryOptions();
             document.getElementById('productModal').style.display = 'block';
         }
 
         function openEditProductModal(productId) {
-            editingProductId = productId;
-            const product = products.find(p => p.id === productId);
-            if (!product) return;
+            if (appState.currentUser !== 'admin') return;
+            
+            appState.editingProductId = productId;
+            const product = appState.products.find(p => p.id === productId);
+            if (!product) {
+                showNotification('Produk tidak ditemukan!', 'error');
+                return;
+            }
 
             document.getElementById('productModalTitle').textContent = '✏️ Edit Produk';
             document.getElementById('productName').value = product.name;
             document.getElementById('productPrice').value = product.price;
             document.getElementById('productCategory').value = product.category;
             document.getElementById('productDescription').value = product.description;
+            
+            updateCategoryOptions();
             
             if (product.image) {
                 document.getElementById('imagePreview').src = product.image;
@@ -1217,31 +1188,46 @@
                 if (processedImage) {
                     preview.src = processedImage;
                     preview.style.display = 'block';
+                } else {
+                    preview.style.display = 'none';
                 }
             }
         }
 
         function deleteProduct(productId) {
-            if (confirm('Apakah Anda yakin ingin menghapus produk ini? Tindakan ini tidak dapat dibatalkan.')) {
-                products = products.filter(p => p.id !== productId);
-                dataManager.saveData();
+            if (appState.currentUser !== 'admin') return;
+            
+            const product = appState.products.find(p => p.id === productId);
+            if (!product) return;
+
+            if (confirm(`Apakah Anda yakin ingin menghapus produk "${product.name}"?\n\nTindakan ini tidak dapat dibatalkan.`)) {
+                appState.products = appState.products.filter(p => p.id !== productId);
+                DataManager.saveData();
                 loadProducts();
+                updateStats();
                 showNotification('Produk berhasil dihapus!', 'success');
             }
         }
 
-        // Enhanced category management
+        // ===== CATEGORY MANAGEMENT =====
         function openAddCategoryModal() {
-            editingCategoryId = null;
+            if (appState.currentUser !== 'admin') return;
+            
+            appState.editingCategoryId = null;
             document.getElementById('categoryModalTitle').textContent = '📂 Tambah Kategori Baru';
             document.getElementById('categoryForm').reset();
             document.getElementById('categoryModal').style.display = 'block';
         }
 
         function openEditCategoryModal(categoryId) {
-            editingCategoryId = categoryId;
-            const category = categories.find(c => c.id === categoryId);
-            if (!category) return;
+            if (appState.currentUser !== 'admin') return;
+            
+            appState.editingCategoryId = categoryId;
+            const category = appState.categories.find(c => c.id === categoryId);
+            if (!category) {
+                showNotification('Kategori tidak ditemukan!', 'error');
+                return;
+            }
 
             document.getElementById('categoryModalTitle').textContent = '✏️ Edit Kategori';
             document.getElementById('categoryName').value = category.name;
@@ -1251,31 +1237,40 @@
         }
 
         function deleteCategory(categoryId) {
-            const productsInCategory = products.filter(p => p.category === categoryId);
-            let confirmMessage = 'Apakah Anda yakin ingin menghapus kategori ini?';
+            if (appState.currentUser !== 'admin') return;
+            
+            const category = appState.categories.find(c => c.id === categoryId);
+            if (!category) return;
+
+            const productsInCategory = appState.products.filter(p => p.category === categoryId);
+            let confirmMessage = `Apakah Anda yakin ingin menghapus kategori "${category.name}"?`;
             
             if (productsInCategory.length > 0) {
-                confirmMessage += `\n\nPerhatian: Ada ${productsInCategory.length} produk dalam kategori ini yang akan kehilangan kategori.`;
+                confirmMessage += `\n\nPerhatian: Ada ${productsInCategory.length} produk dalam kategori ini.`;
             }
             
             if (confirm(confirmMessage)) {
-                categories = categories.filter(c => c.id !== categoryId);
-                dataManager.saveData();
+                appState.categories = appState.categories.filter(c => c.id !== categoryId);
+                DataManager.saveData();
                 loadCategories();
+                loadProducts();
                 updateCategoryOptions();
+                updateStats();
                 showNotification('Kategori berhasil dihapus!', 'success');
             }
         }
 
         function manageCategoriesView() {
+            if (appState.currentUser !== 'admin') return;
+            
             let html = `
                 <div style="background: rgba(255,255,255,0.9); padding: 2rem; border-radius: 15px; margin-top: 1rem;">
                     <h4 style="color: #333; margin-bottom: 1rem;">📋 Kelola Kategori</h4>
                     <div style="display: grid; gap: 1rem;">
             `;
             
-            categories.forEach(category => {
-                const productCount = products.filter(p => p.category === category.id).length;
+            appState.categories.forEach(category => {
+                const productCount = appState.products.filter(p => p.category === category.id).length;
                 html += `
                     <div style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; background: #f8f9fa; border-radius: 10px; border: 1px solid #dee2e6;">
                         <div>
@@ -1304,64 +1299,95 @@
                     <button class="admin-btn" onclick="openAddCategoryModal()">➕ Tambah Kategori Baru</button>
                 </div>
                 ${html}
-                <div class="backup-section">
-                    <h4>💾 Backup & Restore Data</h4>
-                    <div class="backup-buttons">
-                        <button class="admin-btn" onclick="backupData()">📥 Backup Data</button>
-                        <button class="admin-btn" onclick="document.getElementById('restoreFile').click()">📤 Restore Data</button>
-                        <input type="file" id="restoreFile" accept=".json" style="display: none;" onchange="restoreData(this)">
-                    </div>
-                </div>
             `;
         }
 
-        // Enhanced form submissions
-        document.getElementById('productForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
+        // ===== FORM HANDLERS =====
+        document.addEventListener('DOMContentLoaded', function() {
+            // Product form handler
+            document.getElementById('productForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const name = document.getElementById('productName').value.trim();
+                const price = parseInt(document.getElementById('productPrice').value);
+                const category = document.getElementById('productCategory').value;
+                const description = document.getElementById('productDescription').value.trim();
+                const imageFile = document.getElementById('productImage').files[0];
+                
+                if (!name || !price || !category || !description) {
+                    showNotification('Mohon lengkapi semua field!', 'error');
+                    return;
+                }
+
+                if (price <= 0) {
+                    showNotification('Harga harus lebih dari 0!', 'error');
+                    return;
+                }
+                
+                let image = null;
+                if (imageFile) {
+                    image = await ImageManager.processImage(imageFile);
+                    if (!image) return;
+                } else if (appState.editingProductId) {
+                    const existingProduct = appState.products.find(p => p.id === appState.editingProductId);
+                    image = existingProduct ? existingProduct.image : null;
+                }
+                
+                saveProduct(name, price, category, description, image);
+            });
+
+            // Category form handler
+            document.getElementById('categoryForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const name = document.getElementById('categoryName').value.trim();
+                const emoji = document.getElementById('categoryEmoji').value.trim();
+                const description = document.getElementById('categoryDescription').value.trim();
+                
+                if (!name || !emoji || !description) {
+                    showNotification('Mohon lengkapi semua field!', 'error');
+                    return;
+                }
+                
+                saveCategory(name, emoji, description);
+            });
+
+            // Initialize app
+            DataManager.loadData();
             
-            const name = document.getElementById('productName').value.trim();
-            const price = parseInt(document.getElementById('productPrice').value);
-            const category = document.getElementById('productCategory').value;
-            const description = document.getElementById('productDescription').value.trim();
-            const imageFile = document.getElementById('productImage').files[0];
-            
-            if (!name || !price || !category || !description) {
-                showNotification('Mohon lengkapi semua field!', 'error');
-                return;
-            }
-            
-            let image = null;
-            if (imageFile) {
-                image = await ImageManager.processImage(imageFile);
-                if (!image) return;
-            } else if (editingProductId) {
-                const existingProduct = products.find(p => p.id === editingProductId);
-                image = existingProduct ? existingProduct.image : null;
-            }
-            
-            saveProduct(name, price, category, description, image);
+            // Login form handlers
+            document.getElementById('adminPassword').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    adminLogin();
+                }
+            });
+
+            // Auto-focus password field
+            document.getElementById('adminPassword').focus();
         });
 
         function saveProduct(name, price, category, description, image) {
-            const categoryObj = categories.find(c => c.id === category);
+            const categoryObj = appState.categories.find(c => c.id === category);
             const emoji = categoryObj ? categoryObj.emoji : '📦';
             
-            if (editingProductId) {
-                const productIndex = products.findIndex(p => p.id === editingProductId);
-                products[productIndex] = {
-                    ...products[productIndex],
-                    name,
-                    price,
-                    category,
-                    description,
-                    image,
-                    emoji,
-                    updatedAt: new Date().toISOString()
-                };
-                showNotification('Produk berhasil diupdate!', 'success');
+            if (appState.editingProductId) {
+                const productIndex = appState.products.findIndex(p => p.id === appState.editingProductId);
+                if (productIndex !== -1) {
+                    appState.products[productIndex] = {
+                        ...appState.products[productIndex],
+                        name,
+                        price,
+                        category,
+                        description,
+                        image,
+                        emoji,
+                        updatedAt: new Date().toISOString()
+                    };
+                    showNotification('Produk berhasil diupdate!', 'success');
+                }
             } else {
                 const newProduct = {
-                    id: 'prod' + Date.now() + Math.random().toString(36).substr(2, 9),
+                    id: 'prod_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
                     name,
                     price,
                     category,
@@ -1370,69 +1396,63 @@
                     emoji,
                     createdAt: new Date().toISOString()
                 };
-                products.push(newProduct);
+                appState.products.push(newProduct);
                 showNotification('Produk berhasil ditambahkan!', 'success');
             }
             
-            dataManager.saveData();
+            DataManager.saveData();
             loadProducts();
+            updateStats();
             closeModal('productModal');
         }
 
-        document.getElementById('categoryForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const name = document.getElementById('categoryName').value.trim();
-            const emoji = document.getElementById('categoryEmoji').value.trim();
-            const description = document.getElementById('categoryDescription').value.trim();
-            
-            if (!name || !emoji || !description) {
-                showNotification('Mohon lengkapi semua field!', 'error');
-                return;
-            }
-            
-            if (editingCategoryId) {
-                const categoryIndex = categories.findIndex(c => c.id === editingCategoryId);
-                categories[categoryIndex] = {
-                    ...categories[categoryIndex],
-                    name,
-                    emoji,
-                    description,
-                    updatedAt: new Date().toISOString()
-                };
-                showNotification('Kategori berhasil diupdate!', 'success');
+        function saveCategory(name, emoji, description) {
+            if (appState.editingCategoryId) {
+                const categoryIndex = appState.categories.findIndex(c => c.id === appState.editingCategoryId);
+                if (categoryIndex !== -1) {
+                    appState.categories[categoryIndex] = {
+                        ...appState.categories[categoryIndex],
+                        name,
+                        emoji,
+                        description,
+                        updatedAt: new Date().toISOString()
+                    };
+                    showNotification('Kategori berhasil diupdate!', 'success');
+                }
             } else {
                 const newCategory = {
-                    id: 'cat' + Date.now() + Math.random().toString(36).substr(2, 9),
+                    id: 'cat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
                     name,
                     emoji,
                     description,
                     createdAt: new Date().toISOString()
                 };
-                categories.push(newCategory);
+                appState.categories.push(newCategory);
                 showNotification('Kategori berhasil ditambahkan!', 'success');
             }
             
-            dataManager.saveData();
+            DataManager.saveData();
             loadCategories();
+            loadProducts();
             updateCategoryOptions();
+            updateStats();
             closeModal('categoryModal');
-        });
+        }
 
-        // Load and display functions
+        // ===== DISPLAY FUNCTIONS =====
         function loadCategories() {
             const categoryContainer = document.getElementById('categoriesSection');
             let html = `
-                <div class="category-card" onclick="filterProducts('all')">
+                <div class="category-card ${appState.currentFilter === 'all' ? 'active' : ''}" onclick="filterProducts('all')">
                     <h3>🛍️ Semua Produk</h3>
-                    <p>Lihat semua produk (${products.length})</p>
+                    <p>Lihat semua produk (${appState.products.length})</p>
                 </div>
             `;
             
-            categories.forEach(category => {
-                const productCount = products.filter(p => p.category === category.id).length;
+            appState.categories.forEach(category => {
+                const productCount = appState.products.filter(p => p.category === category.id).length;
                 html += `
-                    <div class="category-card" onclick="filterProducts('${category.id}')">
+                    <div class="category-card ${appState.currentFilter === category.id ? 'active' : ''}" onclick="filterProducts('${category.id}')">
                         <h3>${category.emoji} ${category.name}</h3>
                         <p>${category.description} (${productCount})</p>
                     </div>
@@ -1444,107 +1464,141 @@
 
         function loadProducts() {
             const productContainer = document.getElementById('products');
-            let html = '';
             
-            if (products.length === 0) {
-                html = `
+            if (appState.products.length === 0) {
+                productContainer.innerHTML = `
                     <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: white;">
                         <h3>📦 Belum ada produk</h3>
-                        <p>Tambahkan produk pertama Anda melalui Admin Panel!</p>
+                        <p>${appState.currentUser === 'admin' ? 'Tambahkan produk pertama melalui Admin Panel!' : 'Belum ada produk tersedia saat ini.'}</p>
                     </div>
                 `;
-            } else {
-                products.forEach(product => {
-                    const adminButtons = currentUser === 'admin' ? `
-                        <div class="product-actions">
-                            <button class="btn btn-edit" onclick="openEditProductModal('${product.id}')">✏️ Edit</button>
-                            <button class="btn btn-delete" onclick="deleteProduct('${product.id}')">🗑️ Hapus</button>
-                        </div>
-                    ` : '';
-                    
-                    html += `
-                        <div class="product-card" data-category="${product.category}">
-                            <div class="product-image">
-                                ${product.image ? `<img src="${product.image}" alt="${product.name}">` : product.emoji}
-                            </div>
-                            <div class="product-info">
-                                <div class="product-title">${product.name}</div>
-                                <div class="product-price">Rp ${product.price.toLocaleString('id-ID')}</div>
-                                <div class="product-description">${product.description}</div>
-                                ${adminButtons}
-                                <button class="btn" onclick="openOrderModal('${product.name}', 'Rp ${product.price.toLocaleString('id-ID')}')">🛒 Pesan Sekarang</button>
-                            </div>
-                        </div>
-                    `;
-                });
+                return;
             }
+
+            let filteredProducts = appState.products;
+            
+            // Apply category filter
+            if (appState.currentFilter !== 'all') {
+                filteredProducts = filteredProducts.filter(p => p.category === appState.currentFilter);
+            }
+            
+            // Apply search filter
+            if (appState.searchTerm) {
+                filteredProducts = filteredProducts.filter(p => 
+                    p.name.toLowerCase().includes(appState.searchTerm.toLowerCase()) ||
+                    p.description.toLowerCase().includes(appState.searchTerm.toLowerCase())
+                );
+            }
+
+            if (filteredProducts.length === 0) {
+                productContainer.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: white;">
+                        <h3>🔍 Tidak ada produk ditemukan</h3>
+                        <p>Coba ubah filter atau kata kunci pencarian.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            filteredProducts.forEach(product => {
+                const adminButtons = appState.currentUser === 'admin' ? `
+                    <div class="product-actions">
+                        <button class="btn btn-edit" onclick="openEditProductModal('${product.id}')">✏️ Edit</button>
+                        <button class="btn btn-delete" onclick="deleteProduct('${product.id}')">🗑️ Hapus</button>
+                    </div>
+                ` : '';
+                
+                html += `
+                    <div class="product-card" data-category="${product.category}">
+                        <div class="product-image">
+                            ${product.image ? `<img src="${product.image}" alt="${product.name}" loading="lazy">` : product.emoji}
+                        </div>
+                        <div class="product-info">
+                            <div class="product-title">${product.name}</div>
+                            <div class="product-price">Rp ${product.price.toLocaleString('id-ID')}</div>
+                            <div class="product-description">${product.description}</div>
+                            ${adminButtons}
+                            <button class="btn" onclick="openOrderModal('${product.id}')">🛒 Pesan Sekarang</button>
+                        </div>
+                    </div>
+                `;
+            });
             
             productContainer.innerHTML = html;
         }
 
         function updateCategoryOptions() {
             const categorySelect = document.getElementById('productCategory');
+            if (!categorySelect) return;
+            
             let html = '<option value="">Pilih Kategori</option>';
-            
-            categories.forEach(category => {
-                html += `<option value="${category.id}">${category.emoji} ${category.name}</option>`;
+            appState.categories.forEach(category => {
+                const selected = appState.editingProductId && 
+                    appState.products.find(p => p.id === appState.editingProductId)?.category === category.id ? 'selected' : '';
+                html += `<option value="${category.id}" ${selected}>${category.emoji} ${category.name}</option>`;
             });
-            
             categorySelect.innerHTML = html;
         }
 
-        // Enhanced search and filter
+        // ===== SEARCH AND FILTER =====
+        function handleSearch(event) {
+            if (event.key === 'Enter') {
+                searchProducts();
+            } else {
+                // Real-time search with debounce
+                clearTimeout(window.searchTimeout);
+                window.searchTimeout = setTimeout(() => {
+                    const searchTerm = event.target.value.trim();
+                    if (searchTerm.length >= 2 || searchTerm.length === 0) {
+                        appState.searchTerm = searchTerm;
+                        loadProducts();
+                    }
+                }, 300);
+            }
+        }
+
         function searchProducts() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
-            const productCards = document.querySelectorAll('.product-card');
-            let visibleCount = 0;
+            const searchInput = document.getElementById('searchInput');
+            appState.searchTerm = searchInput.value.trim();
+            loadProducts();
             
-            productCards.forEach(card => {
-                const title = card.querySelector('.product-title').textContent.toLowerCase();
-                const description = card.querySelector('.product-description').textContent.toLowerCase();
-                
-                if (searchTerm === '' || title.includes(searchTerm) || description.includes(searchTerm)) {
-                    card.style.display = 'block';
-                    visibleCount++;
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-            
-            if (searchTerm && visibleCount === 0) {
-                showNotification(`Tidak ada produk yang ditemukan untuk "${searchTerm}"`, 'error');
+            if (appState.searchTerm && document.querySelectorAll('.product-card').length === 0) {
+                showNotification(`Tidak ada produk ditemukan untuk "${appState.searchTerm}"`, 'error');
             }
         }
 
         function filterProducts(category) {
-            const productCards = document.querySelectorAll('.product-card');
-            let visibleCount = 0;
+            appState.currentFilter = category;
+            appState.searchTerm = '';
+            document.getElementById('searchInput').value = '';
+            loadProducts();
+            loadCategories(); // Refresh categories to show active state
             
-            productCards.forEach(card => {
-                if (category === 'all' || card.dataset.category === category) {
-                    card.style.display = 'block';
-                    visibleCount++;
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-            
-            // Update search input placeholder
-            const categoryName = category === 'all' ? 'Semua Produk' : categories.find(c => c.id === category)?.name || '';
+            // Update search placeholder
+            const categoryName = category === 'all' ? 'Semua Produk' : 
+                appState.categories.find(c => c.id === category)?.name || '';
             document.getElementById('searchInput').placeholder = `Cari di ${categoryName}...`;
         }
 
-        // Order management
-        function openOrderModal(productName, productPrice) {
-            document.getElementById('orderProductName').value = productName;
-            document.getElementById('orderProductPrice').value = productPrice;
-            document.getElementById('orderModal').style.display = 'block';
+        // ===== ORDER MANAGEMENT =====
+        function openOrderModal(productId) {
+            const product = appState.products.find(p => p.id === productId);
+            if (!product) {
+                showNotification('Produk tidak ditemukan!', 'error');
+                return;
+            }
+
+            document.getElementById('orderProductName').value = product.name;
+            document.getElementById('orderProductPrice').value = `Rp ${product.price.toLocaleString('id-ID')}`;
             
-            // Clear previous order data
+            // Clear form
             document.getElementById('customerName').value = '';
             document.getElementById('customerPhone').value = '';
             document.getElementById('customerAddress').value = '';
             document.getElementById('customerNotes').value = '';
+            
+            document.getElementById('orderModal').style.display = 'block';
         }
 
         function submitOrder() {
@@ -1560,6 +1614,29 @@
                 return;
             }
 
+            // Validate phone number
+            if (!customerPhone.match(/^[0-9+\-\s()]{8,15}$/)) {
+                showNotification('Format nomor WhatsApp tidak valid!', 'error');
+                return;
+            }
+
+            const orderData = {
+                id: 'order_' + Date.now(),
+                productName,
+                productPrice,
+                customerName,
+                customerPhone,
+                customerAddress,
+                customerNotes,
+                timestamp: new Date().toISOString(),
+                status: 'pending'
+            };
+
+            // Save order to local storage
+            appState.orders.push(orderData);
+            DataManager.saveData();
+            updateStats();
+
             const message = `🛍️ *PESANAN BARU MEILI CHINA JASTIP*
 
 📦 *Produk:* ${productName}
@@ -1572,80 +1649,112 @@ Alamat: ${customerAddress}
 ${customerNotes ? `Catatan: ${customerNotes}` : ''}
 
 ⏰ Waktu Pesan: ${new Date().toLocaleString('id-ID')}
+🆔 Order ID: ${orderData.id}
 
 ✨ Mohon konfirmasi ketersediaan produk dan estimasi waktu pengiriman. Terima kasih!`;
 
-            const whatsappUrl = `https://wa.me/6282276882317?text=${encodeURIComponent(message)}`;
+            const whatsappUrl = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodeURIComponent(message)}`;
             window.open(whatsappUrl, '_blank');
             
             closeModal('orderModal');
             showNotification('Pesanan berhasil dikirim ke WhatsApp!', 'success');
         }
 
-        // Enhanced backup and restore
+        // ===== BACKUP AND RESTORE =====
         function backupData() {
+            if (appState.currentUser !== 'admin') return;
+            
             try {
-                const backupData = dataManager.exportData();
+                const backupData = DataManager.exportData();
                 const dataBlob = new Blob([backupData], { type: 'application/json' });
                 const url = URL.createObjectURL(dataBlob);
                 
                 const link = document.createElement('a');
                 link.href = url;
                 link.download = `meili-jastip-backup-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(link);
                 link.click();
+                document.body.removeChild(link);
                 
                 URL.revokeObjectURL(url);
                 showNotification('Backup berhasil didownload!', 'success');
             } catch (error) {
+                console.error('Backup error:', error);
                 showNotification('Error saat membuat backup!', 'error');
             }
         }
 
         function restoreData(input) {
+            if (appState.currentUser !== 'admin') return;
+            
             const file = input.files[0];
             if (!file) return;
             
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
-                    if (confirm('Apakah Anda yakin ingin restore data? Data saat ini akan ditimpa dan tidak dapat dibatalkan.')) {
-                        if (dataManager.importData(e.target.result)) {
+                    const confirmRestore = confirm(`Apakah Anda yakin ingin restore data dari file "${file.name}"?\n\nData saat ini akan ditimpa dan tidak dapat dibatalkan.\n\nKlik OK untuk melanjutkan.`);
+                    
+                    if (confirmRestore) {
+                        if (DataManager.importData(e.target.result)) {
                             loadProducts();
                             loadCategories();
                             updateCategoryOptions();
+                            updateStats();
                             showNotification('Data berhasil direstore!', 'success');
                         } else {
                             showNotification('File backup tidak valid atau korup!', 'error');
                         }
                     }
                 } catch (error) {
+                    console.error('Restore error:', error);
                     showNotification('Error membaca file backup!', 'error');
                 }
                 
                 // Clear file input
                 input.value = '';
             };
+            
+            reader.onerror = () => {
+                showNotification('Error membaca file!', 'error');
+                input.value = '';
+            };
+            
             reader.readAsText(file);
         }
 
         function clearAllData() {
-            if (confirm('PERINGATAN: Apakah Anda yakin ingin menghapus SEMUA data?\n\nTindakan ini akan menghapus:\n- Semua produk\n- Semua kategori custom\n- Tidak dapat dibatalkan\n\nKetik "HAPUS SEMUA" untuk konfirmasi:')) {
-                const confirmation = prompt('Ketik "HAPUS SEMUA" untuk konfirmasi:');
-                if (confirmation === 'HAPUS SEMUA') {
-                    dataManager.clearAllData();
-                    loadProducts();
-                    loadCategories();
-                    updateCategoryOptions();
-                    showNotification('Semua data berhasil dihapus dan direset ke default!', 'success');
-                } else {
-                    showNotification('Konfirmasi salah. Data tidak dihapus.', 'error');
-                }
+            if (appState.currentUser !== 'admin') return;
+            
+            const confirmation = prompt(`⚠️ PERINGATAN BERBAHAYA ⚠️
+
+Anda akan menghapus SEMUA data:
+• ${appState.products.length} produk
+• ${appState.categories.length} kategori  
+• ${appState.orders.length} pesanan
+
+Tindakan ini TIDAK DAPAT DIBATALKAN!
+
+Ketik "HAPUS SEMUA DATA" untuk konfirmasi:`);
+            
+            if (confirmation === 'HAPUS SEMUA DATA') {
+                DataManager.clearAllData();
+                loadProducts();
+                loadCategories();
+                updateCategoryOptions();
+                updateStats();
+                showNotification('Semua data berhasil dihapus dan direset!', 'success');
+            } else if (confirmation !== null) {
+                showNotification('Konfirmasi salah. Data tidak dihapus.', 'error');
             }
         }
 
-        // Utility functions
+        // ===== UTILITY FUNCTIONS =====
         function closeModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.style.display = 'none';
+            }
         }
 
         function showNotification(message, type) {
@@ -1659,47 +1768,58 @@ ${customerNotes ? `Catatan: ${customerNotes}` : ''}
             }, 4000);
         }
 
-        // Event listeners
-        document.getElementById('searchInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                searchProducts();
+        function scrollToSection(sectionId) {
+            const element = document.getElementById(sectionId);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth' });
             }
-        });
+        }
 
-        // Real-time search
-        document.getElementById('searchInput').addEventListener('input', function() {
-            if (this.value.length > 2 || this.value.length === 0) {
-                searchProducts();
-            }
-        });
+        function initializeApp() {
+            loadCategories();
+            loadProducts();
+            updateCategoryOptions();
+            updateStats();
+            
+            // Set initial filter state
+            appState.currentFilter = 'all';
+            appState.searchTerm = '';
+            
+            console.log('Meili China Jastip App initialized successfully!');
+            console.log(`User: ${appState.currentUser}`);
+            console.log(`Products: ${appState.products.length}`);
+            console.log(`Categories: ${appState.categories.length}`);
+            console.log(`Orders: ${appState.orders.length}`);
+        }
 
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            const modals = ['orderModal', 'productModal', 'categoryModal'];
-            modals.forEach(modalId => {
-                const modal = document.getElementById(modalId);
-                if (event.target === modal) {
-                    closeModal(modalId);
-                }
-            });
-        };
-
-        // Keyboard shortcuts
-        document.addEventListener('keydown', function(e) {
-            // ESC to close modals
-            if (e.key === 'Escape') {
+        // ===== EVENT LISTENERS =====
+        document.addEventListener('DOMContentLoaded', function() {
+            // Modal close handlers
+            window.onclick = function(event) {
                 const modals = ['orderModal', 'productModal', 'categoryModal'];
                 modals.forEach(modalId => {
                     const modal = document.getElementById(modalId);
-                    if (modal.style.display === 'block') {
+                    if (event.target === modal) {
                         closeModal(modalId);
                     }
                 });
-            }
-            
-            // Admin shortcuts (only for admin users)
-            if (currentUser === 'admin') {
-                if (e.ctrlKey || e.metaKey) {
+            };
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                // ESC to close modals
+                if (e.key === 'Escape') {
+                    const modals = ['orderModal', 'productModal', 'categoryModal'];
+                    modals.forEach(modalId => {
+                        const modal = document.getElementById(modalId);
+                        if (modal && modal.style.display === 'block') {
+                            closeModal(modalId);
+                        }
+                    });
+                }
+                
+                // Admin shortcuts
+                if (appState.currentUser === 'admin' && (e.ctrlKey || e.metaKey)) {
                     switch(e.key.toLowerCase()) {
                         case 'n':
                             e.preventDefault();
@@ -1715,120 +1835,60 @@ ${customerNotes ? `Catatan: ${customerNotes}` : ''}
                             break;
                     }
                 }
-            }
-        });
+            });
 
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            // Auto-focus on password field
-            document.getElementById('adminPassword').focus();
-            
-            // Allow Enter key to login
-            document.getElementById('adminPassword').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    login();
+            // Auto-save data every 30 seconds
+            setInterval(() => {
+                if (appState.currentUser) {
+                    DataManager.saveData();
+                }
+            }, 30000);
+
+            // Handle page visibility change (save data when tab becomes hidden)
+            document.addEventListener('visibilitychange', function() {
+                if (document.hidden && appState.currentUser) {
+                    DataManager.saveData();
                 }
             });
-            
-            // Check if there's saved admin session (optional)
-            const adminSession = sessionStorage.getItem('meiliAdminSession');
-            if (adminSession) {
-                const sessionData = JSON.parse(adminSession);
-                const now = new Date().getTime();
-                if (now - sessionData.timestamp < 3600000) { // 1 hour
-                    // Auto-login (optional feature)
-                    // Uncomment the lines below if you want auto-login
-                    // currentUser = 'admin';
-                    // document.getElementById('loginScreen').style.display = 'none';
-                    // document.getElementById('mainContent').style.display = 'block';
-                    // init();
+
+            // Handle page unload (save data before leaving)
+            window.addEventListener('beforeunload', function() {
+                if (appState.currentUser) {
+                    DataManager.saveData();
                 }
-            }
+            });
+
+            // Initialize data
+            DataManager.loadData();
             
-            // Performance monitoring
-            console.log('Meili China Jastip App initialized successfully!');
-            console.log(`Products loaded: ${products.length}`);
-            console.log(`Categories loaded: ${categories.length}`);
+            // Network status monitoring
+            window.addEventListener('online', function() {
+                showNotification('Koneksi internet tersambung kembali!', 'success');
+            });
+
+            window.addEventListener('offline', function() {
+                showNotification('Koneksi internet terputus. Data akan disimpan secara lokal.', 'error');
+            });
+
+            // Error handling
+            window.addEventListener('error', function(e) {
+                console.error('Application error:', e.error);
+                showNotification('Terjadi kesalahan pada aplikasi.', 'error');
+            });
+
+            console.log('Meili China Jastip - Event listeners initialized');
         });
 
-        // Save admin session (optional)
-        function saveAdminSession() {
-            if (currentUser === 'admin') {
-                const sessionData = {
-                    timestamp: new Date().getTime(),
-                    user: 'admin'
-                };
-                sessionStorage.setItem('meiliAdminSession', JSON.stringify(sessionData));
-            }
-        }
-
-        // Clear admin session
-        function clearAdminSession() {
-            sessionStorage.removeItem('meiliAdminSession');
-        }
-
-        // Enhanced error handling
-        window.addEventListener('error', function(e) {
-            console.error('Application error:', e.error);
-            showNotification('Terjadi kesalahan pada aplikasi. Silakan refresh halaman.', 'error');
-        });
-
-        // Network status monitoring
-        window.addEventListener('online', function() {
-            showNotification('Koneksi internet tersambung kembali!', 'success');
-        });
-
-        window.addEventListener('offline', function() {
-            showNotification('Koneksi internet terputus. Data akan disimpan secara lokal.', 'error');
-        });
-
-        // Print functionality (bonus feature)
-        function printProducts() {
-            const printWindow = window.open('', '_blank');
-            const productsHTML = products.map(product => `
-                <div style="border: 1px solid #ddd; padding: 1rem; margin: 1rem; border-radius: 5px;">
-                    <h3>${product.name}</h3>
-                    <p><strong>Harga:</strong> Rp ${product.price.toLocaleString('id-ID')}</p>
-                    <p><strong>Kategori:</strong> ${categories.find(c => c.id === product.category)?.name || 'Tidak ada'}</p>
-                    <p><strong>Deskripsi:</strong> ${product.description}</p>
-                </div>
-            `).join('');
-            
-            printWindow.document.write(`
-                <html>
-                    <head>
-                        <title>Daftar Produk - Meili China Jastip</title>
-                        <style>
-                            body { font-family: Arial, sans-serif; margin: 20px; }
-                            h1 { text-align: center; color: #333; }
-                            .header { text-align: center; margin-bottom: 2rem; }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="header">
-                            <h1>🛍️ Meili China Jastip</h1>
-                            <p>Daftar Produk - ${new Date().toLocaleDateString('id-ID')}</p>
-                            <p>Total Produk: ${products.length}</p>
-                        </div>
-                        ${productsHTML}
-                        <div style="text-align: center; margin-top: 2rem; color: #666;">
-                            <p>WhatsApp: 082276882317 | Instagram: @meili.china.jastip.po</p>
-                        </div>
-                    </body>
-                </html>
-            `);
-            printWindow.document.close();
-            printWindow.print();
-        }
-
-        // Export to CSV (bonus feature)
+        // ===== ADDITIONAL FEATURES =====
         function exportToCSV() {
+            if (appState.currentUser !== 'admin') return;
+            
             const csvContent = [
-                'Nama Produk,Harga,Kategori,Deskripsi,Tanggal Dibuat',
-                ...products.map(product => {
-                    const category = categories.find(c => c.id === product.category)?.name || 'Tidak ada';
+                'ID,Nama Produk,Harga,Kategori,Deskripsi,Tanggal Dibuat',
+                ...appState.products.map(product => {
+                    const category = appState.categories.find(c => c.id === product.category)?.name || 'Tidak ada';
                     const createdAt = product.createdAt ? new Date(product.createdAt).toLocaleDateString('id-ID') : 'Tidak diketahui';
-                    return `"${product.name}","Rp ${product.price.toLocaleString('id-ID')}","${category}","${product.description}","${createdAt}"`;
+                    return `"${product.id}","${product.name}","${product.price}","${category}","${product.description}","${createdAt}"`;
                 })
             ].join('\n');
             
@@ -1836,21 +1896,138 @@ ${customerNotes ? `Catatan: ${customerNotes}` : ''}
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
             link.download = `meili-jastip-products-${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(link);
             link.click();
+            document.body.removeChild(link);
             URL.revokeObjectURL(link.href);
             
             showNotification('Data produk berhasil diekspor ke CSV!', 'success');
         }
 
-        // Add these functions to admin panel if needed
-        if (typeof window !== 'undefined') {
-            window.meiliApp = {
-                printProducts,
-                exportToCSV,
-                version: '2.0',
-                author: 'Meili China Jastip Admin System'
-            };
+        function printProducts() {
+            if (appState.currentUser !== 'admin') return;
+            
+            const printWindow = window.open('', '_blank');
+            const productsHTML = appState.products.map(product => {
+                const category = appState.categories.find(c => c.id === product.category)?.name || 'Tidak ada';
+                return `
+                    <div style="border: 1px solid #ddd; padding: 1rem; margin: 1rem 0; border-radius: 5px; page-break-inside: avoid;">
+                        <h3>${product.name}</h3>
+                        <p><strong>Harga:</strong> Rp ${product.price.toLocaleString('id-ID')}</p>
+                        <p><strong>Kategori:</strong> ${category}</p>
+                        <p><strong>Deskripsi:</strong> ${product.description}</p>
+                        ${product.createdAt ? `<p><strong>Dibuat:</strong> ${new Date(product.createdAt).toLocaleDateString('id-ID')}</p>` : ''}
+                    </div>
+                `;
+            }).join('');
+            
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                    <head>
+                        <title>Daftar Produk - Meili China Jastip</title>
+                        <style>
+                            body { 
+                                font-family: Arial, sans-serif; 
+                                margin: 20px; 
+                                line-height: 1.4;
+                            }
+                            h1 { 
+                                text-align: center; 
+                                color: #333; 
+                                border-bottom: 2px solid #333;
+                                padding-bottom: 10px;
+                            }
+                            .header { 
+                                text-align: center; 
+                                margin-bottom: 2rem; 
+                                background: #f8f9fa;
+                                padding: 1rem;
+                                border-radius: 5px;
+                            }
+                            .footer {
+                                text-align: center;
+                                margin-top: 2rem;
+                                color: #666;
+                                border-top: 1px solid #ddd;
+                                padding-top: 1rem;
+                            }
+                            @media print {
+                                body { margin: 0; }
+                                .header { background: none !important; }
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="header">
+                            <h1>🛍️ Meili China Jastip</h1>
+                            <p><strong>Daftar Produk</strong></p>
+                            <p>Tanggal Cetak: ${new Date().toLocaleDateString('id-ID')}</p>
+                            <p>Total Produk: ${appState.products.length} | Total Kategori: ${appState.categories.length}</p>
+                        </div>
+                        ${productsHTML}
+                        <div class="footer">
+                            <p><strong>Kontak:</strong></p>
+                            <p>WhatsApp: 082276882317 | Instagram: @meili.china.jastip.po</p>
+                            <p>Jam Operasional: 09:00 - 21:00</p>
+                        </div>
+                    </body>
+                </html>
+            `);
+            
+            printWindow.document.close();
+            
+            // Wait for content to load then print
+            setTimeout(() => {
+                printWindow.print();
+            }, 250);
+            
+            showNotification('Halaman print telah dibuka!', 'success');
         }
+
+        // ===== GLOBAL APP OBJECT =====
+        window.MeiliApp = {
+            version: '2.0',
+            author: 'Meili China Jastip',
+            features: {
+                exportToCSV,
+                printProducts,
+                backupData,
+                clearAllData
+            },
+            state: appState,
+            config: CONFIG,
+            utils: {
+                showNotification,
+                closeModal,
+                scrollToSection
+            }
+        };
+
+        // ===== CONSOLE WELCOME MESSAGE =====
+        console.log(`
+🛍️ Meili China Jastip Admin System v2.0
+========================================
+✅ Sistem berhasil dimuat!
+🔧 Developer Tools tersedia di window.MeiliApp
+📱 WhatsApp: 082276882317
+📸 Instagram: @meili.china.jastip.po
+
+Fitur Tersedia:
+• Manajemen Produk & Kategori
+• Upload Gambar dengan Kompresi
+• Backup & Restore Data
+• Export CSV & Print
+• Real-time Search & Filter
+• Responsive Design
+• Auto-save Data
+
+Shortcut Admin:
+• Ctrl+N: Tambah Produk
+• Ctrl+B: Backup Data  
+• Ctrl+K: Focus Search
+• ESC: Tutup Modal
+        `);
     </script>
 </body>
 </html>
