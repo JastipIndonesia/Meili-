@@ -253,12 +253,22 @@
             color: white;
             position: relative;
             overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+
+        .product-image:hover {
+            transform: scale(1.05);
         }
 
         .product-image img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        .product-image:hover img {
+            transform: scale(1.1);
         }
 
         .product-info {
@@ -629,6 +639,39 @@
                 margin: 5% auto;
                 width: 95%;
             }
+
+            /* Image modal mobile improvements */
+            #imageModal .modal-content {
+                width: 100vw;
+                height: 100vh;
+                margin: 0;
+                max-width: none;
+                max-height: none;
+            }
+
+            #imageModal #zoomedImage {
+                max-width: 95vw;
+                max-height: 80vh;
+                touch-action: pinch-zoom;
+            }
+
+            #imageModal #imageInfo {
+                position: fixed;
+                bottom: 10px;
+                left: 10px;
+                right: 10px;
+                transform: none;
+                font-size: 0.9rem;
+                padding: 0.8rem;
+            }
+
+            #imageModal .close {
+                top: 10px;
+                right: 10px;
+                width: 40px;
+                height: 40px;
+                font-size: 1.5rem;
+            }
         }
     </style>
 </head>
@@ -848,6 +891,15 @@
                 </div>
                 <button type="submit" class="btn" style="width: 100%;">💾 Simpan Kategori</button>
             </form>
+        </div>
+    </div>
+
+    <!-- Image Zoom Modal -->
+    <div id="imageModal" class="modal" style="background: rgba(0,0,0,0.95);">
+        <div class="modal-content" style="max-width: 90vw; max-height: 90vh; padding: 0; background: transparent; border: none; display: flex; align-items: center; justify-content: center;">
+            <span class="close" onclick="closeModal('imageModal')" style="position: fixed; top: 20px; right: 20px; font-size: 2rem; color: white; background: rgba(0,0,0,0.5); border-radius: 50%; width: 50px; height: 50px; z-index: 2001;">&times;</span>
+            <img id="zoomedImage" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.5);" alt="Zoomed Product Image">
+            <div id="imageInfo" style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); color: white; padding: 1rem 2rem; border-radius: 25px; backdrop-filter: blur(10px);"></div>
         </div>
     </div>
 
@@ -1626,8 +1678,9 @@
                     
                     html += `
                         <div class="product-card" data-category="${product.category}">
-                            <div class="product-image">
-                                ${product.image ? `<img src="${product.image}" alt="${product.name}" loading="lazy" onerror="this.style.display='none'; this.parentNode.innerHTML='${product.emoji}'">` : product.emoji}
+                            <div class="product-image" ${product.image ? `onclick="openImageModal('${product.image}', '${product.name}', 'Rp ${product.price.toLocaleString('id-ID')}')" style="cursor: pointer;" title="Klik untuk memperbesar gambar"` : ''}>
+                                ${product.image ? `<img src="${product.image}" alt="${product.name}" loading="lazy" onerror="this.style.display='none'; this.parentNode.innerHTML='${product.emoji}'" title="Klik untuk memperbesar">` : product.emoji}
+                                ${product.image ? '<div style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 0.5rem; border-radius: 50%; font-size: 0.9rem; transition: all 0.3s; opacity: 0.8;">🔍</div>' : ''}
                             </div>
                             <div class="product-info">
                                 <div class="product-title">${product.name}</div>
@@ -1865,8 +1918,65 @@ Ketik "HAPUS SEMUA DATA" untuk konfirmasi:`);
             }
         }
 
+        // ===== IMAGE ZOOM FUNCTIONALITY =====
+        function openImageModal(imageSrc, productName, productPrice) {
+            const modal = document.getElementById('imageModal');
+            const zoomedImage = document.getElementById('zoomedImage');
+            const imageInfo = document.getElementById('imageInfo');
+            
+            zoomedImage.src = imageSrc;
+            imageInfo.innerHTML = `
+                <div style="text-align: center;">
+                    <div style="font-weight: bold; margin-bottom: 0.5rem;">${productName}</div>
+                    <div style="color: #4facfe;">${productPrice}</div>
+                    <div style="font-size: 0.8rem; margin-top: 0.5rem; opacity: 0.8;">Tekan ESC atau klik di luar untuk tutup</div>
+                </div>
+            `;
+            
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden'; // Prevent scrolling
+            
+            // Add fade in animation
+            modal.style.opacity = '0';
+            setTimeout(() => {
+                modal.style.transition = 'opacity 0.3s ease';
+                modal.style.opacity = '1';
+            }, 10);
+
+            // Mobile touch handling for better UX
+            let touchStartTime = 0;
+            zoomedImage.addEventListener('touchstart', function(e) {
+                touchStartTime = Date.now();
+            });
+
+            zoomedImage.addEventListener('touchend', function(e) {
+                const touchDuration = Date.now() - touchStartTime;
+                if (touchDuration < 200) { // Quick tap
+                    closeImageModal();
+                }
+            });
+        }
+
+        function closeImageModal() {
+            const modal = document.getElementById('imageModal');
+            document.body.style.overflow = 'auto'; // Restore scrolling
+            
+            // Add fade out animation
+            modal.style.transition = 'opacity 0.3s ease';
+            modal.style.opacity = '0';
+            setTimeout(() => {
+                modal.style.display = 'none';
+                modal.style.transition = '';
+            }, 300);
+        }
+
         // ===== UTILITY FUNCTIONS =====
         function closeModal(modalId) {
+            if (modalId === 'imageModal') {
+                closeImageModal();
+                return;
+            }
+            
             const modal = document.getElementById(modalId);
             if (modal) {
                 modal.style.display = 'none';
@@ -2028,7 +2138,7 @@ Ketik "HAPUS SEMUA DATA" untuk konfirmasi:`);
 
             // Modal close handlers
             window.onclick = function(event) {
-                const modals = ['orderModal', 'productModal', 'categoryModal'];
+                const modals = ['orderModal', 'productModal', 'categoryModal', 'imageModal'];
                 modals.forEach(modalId => {
                     const modal = document.getElementById(modalId);
                     if (event.target === modal) {
@@ -2040,10 +2150,10 @@ Ketik "HAPUS SEMUA DATA" untuk konfirmasi:`);
             // Keyboard shortcuts
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') {
-                    const modals = ['orderModal', 'productModal', 'categoryModal'];
+                    const modals = ['orderModal', 'productModal', 'categoryModal', 'imageModal'];
                     modals.forEach(modalId => {
                         const modal = document.getElementById(modalId);
-                        if (modal && modal.style.display === 'block') {
+                        if (modal && (modal.style.display === 'block' || modalId === 'imageModal' && modal.style.opacity === '1')) {
                             closeModal(modalId);
                         }
                     });
@@ -2111,6 +2221,7 @@ Ketik "HAPUS SEMUA DATA" untuk konfirmasi:`);
 
 Fitur Tersedia:
 • 🔥 Firebase Firestore integration
+• 🖼️ Image Zoom Modal (klik foto untuk zoom)
 • Manajemen Produk & Kategori (realtime)
 • Upload Gambar dengan Kompresi
 • Backup & Restore Data
@@ -2122,7 +2233,8 @@ Shortcut Admin:
 • Ctrl+N: Tambah Produk
 • Ctrl+B: Backup Data  
 • Ctrl+K: Focus Search
-• ESC: Tutup Modal
+• ESC: Tutup Modal/Zoom
+• Click foto: Zoom image
 
 Firebase Status: Connected ✅
 Project ID: meilijastip
