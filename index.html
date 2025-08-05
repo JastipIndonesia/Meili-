@@ -520,7 +520,17 @@
             z-index: 3000;
             transform: translateX(400px);
             transition: transform 0.3s ease;
-            max-width: 300px;
+            max-width: 350px;
+            line-height: 1.4;
+        }
+
+        .notification a {
+            color: inherit;
+            text-decoration: underline;
+        }
+
+        .notification a:hover {
+            opacity: 0.8;
         }
 
         .notification.show {
@@ -731,6 +741,7 @@
                 <button class="admin-btn" onclick="openAddProductModal()">➕ Tambah Produk</button>
                 <button class="admin-btn" onclick="openAddCategoryModal()">📂 Tambah Kategori</button>
                 <button class="admin-btn" onclick="manageCategoriesView()">📋 Kelola Kategori</button>
+                <button class="admin-btn" onclick="viewOrderHistory()">📝 Lihat Pesanan</button>
                 <button class="admin-btn danger" onclick="clearAllData()">🗑️ Reset Data</button>
             </div>
             
@@ -772,7 +783,7 @@
                 <div class="contact-details">
                     <div class="contact-item">
                         <span>📱</span>
-                        <span>WhatsApp: 62-838-5412-8536</span>
+                        <span id="whatsappContact">WhatsApp: <a href="https://wa.me/6283854128536" target="_blank" style="color: #25d366; text-decoration: underline; font-weight: bold;" title="Klik untuk chat WhatsApp">62-838-5412-8536</a></span>
                     </div>
                     <div class="contact-item">
                         <span>📸</span>
@@ -782,6 +793,17 @@
                         <span>⏰</span>
                         <span>Jam Operasional: 09:00 - 21:00</span>
                     </div>
+                </div>
+                <div style="text-align: center; margin-top: 1.5rem;">
+                    <a href="https://wa.me/6283854128536?text=Halo%20Meili%20China%20Jastip%2C%20saya%20tertarik%20dengan%20produk%20Anda" 
+                       target="_blank" 
+                       style="display: inline-block; background: linear-gradient(45deg, #25d366, #128c7e); 
+                       color: white; padding: 1rem 2rem; border-radius: 25px; text-decoration: none; 
+                       font-weight: bold; transition: all 0.3s; box-shadow: 0 4px 15px rgba(37, 211, 102, 0.3);"
+                       onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(37, 211, 102, 0.4)'" 
+                       onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(37, 211, 102, 0.3)'">
+                        💬 Chat Langsung di WhatsApp
+                    </a>
                 </div>
             </section>
         </main>
@@ -1523,6 +1545,167 @@
             }
         }
 
+        function viewOrderHistory() {
+            if (appState.currentUser !== 'admin') return;
+            
+            let html = `
+                <div style="background: rgba(255,255,255,0.9); padding: 2rem; border-radius: 15px; margin-top: 1rem;">
+                    <h4 style="color: #333; margin-bottom: 1rem;">📝 Riwayat Pesanan</h4>
+                    <div style="display: grid; gap: 1rem; max-height: 60vh; overflow-y: auto;">
+            `;
+            
+            if (appState.orders.length === 0) {
+                html += `
+                    <div style="text-align: center; padding: 2rem; color: #666;">
+                        <p>📭 Belum ada pesanan masuk.</p>
+                    </div>
+                `;
+            } else {
+                appState.orders.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                
+                appState.orders.forEach((order, index) => {
+                    const orderDate = new Date(order.timestamp).toLocaleDateString('id-ID');
+                    const orderTime = new Date(order.timestamp).toLocaleTimeString('id-ID');
+                    
+                    // Create WhatsApp message for follow up
+                    const followUpMessage = `Halo ${order.customerName}, 
+
+Terima kasih sudah memesan ${order.productName} seharga ${order.productPrice}.
+
+Status pesanan Anda (Order ID: ${order.id}) sedang diproses. 
+
+Kami akan update info pengiriman secepatnya. Ada pertanyaan?`;
+
+                    const whatsappUrl = `https://wa.me/${order.customerPhone.replace(/[\s\-]/g, '')}?text=${encodeURIComponent(followUpMessage)}`;
+                    
+                    html += `
+                        <div style="border: 1px solid #dee2e6; border-radius: 10px; padding: 1rem; background: white;">
+                            <div style="display: flex; justify-content: between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+                                <div style="flex: 1; min-width: 250px;">
+                                    <div style="font-weight: bold; color: #333; margin-bottom: 0.5rem;">
+                                        Order #${index + 1} - ${order.productName}
+                                    </div>
+                                    <div style="font-size: 0.9rem; color: #666; line-height: 1.4;">
+                                        💰 <strong>${order.productPrice}</strong><br>
+                                        👤 ${order.customerName}<br>
+                                        📱 <a href="${whatsappUrl}" target="_blank" style="color: #25d366; text-decoration: underline; font-weight: bold;" title="Klik untuk chat customer">${order.customerPhone}</a><br>
+                                        📍 ${order.customerAddress}<br>
+                                        ${order.customerNotes ? `📝 ${order.customerNotes}<br>` : ''}
+                                        🕒 ${orderDate} ${orderTime}<br>
+                                        🆔 ${order.id}
+                                    </div>
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 0.5rem; min-width: 150px;">
+                                    <a href="${whatsappUrl}" target="_blank" 
+                                       style="display: inline-block; background: linear-gradient(45deg, #25d366, #128c7e); 
+                                       color: white; padding: 0.5rem 1rem; border-radius: 25px; text-decoration: none; 
+                                       font-weight: bold; text-align: center; font-size: 0.9rem; transition: all 0.3s;"
+                                       onmouseover="this.style.transform='scale(1.05)'" 
+                                       onmouseout="this.style.transform='scale(1)'">
+                                        💬 Chat Customer
+                                    </a>
+                                    <button onclick="copyOrderInfo('${order.id}')" 
+                                            style="background: #007bff; color: white; border: none; padding: 0.5rem 1rem; 
+                                            border-radius: 25px; cursor: pointer; font-size: 0.9rem; transition: all 0.3s;"
+                                            onmouseover="this.style.background='#0056b3'" 
+                                            onmouseout="this.style.background='#007bff'">
+                                        📋 Copy Info
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            html += `
+                    </div>
+                    <div style="margin-top: 1rem; text-align: center;">
+                        <button onclick="exportOrdersToCSV()" 
+                                style="padding: 0.8rem 1.5rem; border: none; border-radius: 25px; cursor: pointer; 
+                                background: linear-gradient(45deg, #28a745, #20c997); color: white; font-weight: bold; margin-right: 1rem;">
+                            📊 Export to CSV
+                        </button>
+                        <button onclick="clearAllOrders()" 
+                                style="padding: 0.8rem 1.5rem; border: none; border-radius: 25px; cursor: pointer; 
+                                background: linear-gradient(45deg, #dc3545, #c82333); color: white; font-weight: bold;">
+                            🗑️ Hapus Semua Pesanan
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('adminPanel').innerHTML = `
+                <h3 style="color: white; margin-bottom: 1rem;">🛠️ Admin Panel - Riwayat Pesanan</h3>
+                <div class="admin-controls">
+                    <button class="admin-btn" onclick="location.reload()">🔄 Kembali ke Dashboard</button>
+                    <button class="admin-btn" onclick="viewOrderHistory()">🔄 Refresh Pesanan</button>
+                </div>
+                ${html}
+            `;
+        }
+
+        function copyOrderInfo(orderId) {
+            const order = appState.orders.find(o => o.id === orderId);
+            if (!order) return;
+
+            const orderInfo = `Order ID: ${order.id}
+Produk: ${order.productName}
+Harga: ${order.productPrice}
+Customer: ${order.customerName}
+WhatsApp: ${order.customerPhone}
+Alamat: ${order.customerAddress}
+${order.customerNotes ? `Catatan: ${order.customerNotes}` : ''}
+Tanggal: ${new Date(order.timestamp).toLocaleString('id-ID')}`;
+
+            navigator.clipboard.writeText(orderInfo).then(() => {
+                showNotification('Info pesanan berhasil dicopy!', 'success');
+            }).catch(() => {
+                showNotification('Gagal copy info pesanan!', 'error');
+            });
+        }
+
+        function exportOrdersToCSV() {
+            if (appState.currentUser !== 'admin') return;
+            
+            const csvContent = [
+                'Order ID,Tanggal,Produk,Harga,Nama Customer,WhatsApp,Alamat,Catatan',
+                ...appState.orders.map(order => {
+                    const date = new Date(order.timestamp).toLocaleDateString('id-ID');
+                    return `"${order.id}","${date}","${order.productName}","${order.productPrice}","${order.customerName}","${order.customerPhone}","${order.customerAddress}","${order.customerNotes || ''}"`;
+                })
+            ].join('\n');
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `meili-jastip-orders-${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+            
+            showNotification('Data pesanan berhasil diekspor ke CSV!', 'success');
+        }
+
+        function clearAllOrders() {
+            if (appState.currentUser !== 'admin') return;
+            
+            const confirmation = confirm(`⚠️ Apakah Anda yakin ingin menghapus SEMUA PESANAN (${appState.orders.length} pesanan)?
+
+Tindakan ini TIDAK DAPAT DIBATALKAN!
+
+Klik OK untuk melanjutkan.`);
+            
+            if (confirmation) {
+                // Note: In a real app, you'd delete from Firebase too
+                appState.orders = [];
+                updateStats();
+                viewOrderHistory(); // Refresh view
+                showNotification('Semua pesanan berhasil dihapus!', 'success');
+            }
+        }
+
         function manageCategoriesView() {
             if (appState.currentUser !== 'admin') return;
             
@@ -1753,6 +1936,32 @@
             document.getElementById('searchInput').placeholder = `Cari di ${categoryName}...`;
         }
 
+        // ===== WHATSAPP AUTO-LINK FUNCTIONS =====
+        function makeWhatsAppClickable(text) {
+            // Convert WhatsApp numbers to clickable links
+            const whatsappRegex = /(\+?62[\s\-]?8[1-9][0-9][\s\-]?[0-9]{3,4}[\s\-]?[0-9]{3,4})/g;
+            return text.replace(whatsappRegex, function(match) {
+                const cleanNumber = match.replace(/[\s\-]/g, '');
+                const whatsappUrl = `https://wa.me/${cleanNumber}`;
+                return `<a href="${whatsappUrl}" target="_blank" style="color: #25d366; text-decoration: underline; font-weight: bold;" title="Klik untuk chat WhatsApp">📱 ${match}</a>`;
+            });
+        }
+
+        function addWhatsAppButton(phoneNumber, message = '') {
+            const cleanNumber = phoneNumber.replace(/[\s\-]/g, '');
+            const defaultMessage = message || 'Halo, saya tertarik dengan produk Anda.';
+            const whatsappUrl = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(defaultMessage)}`;
+            
+            return `<a href="${whatsappUrl}" target="_blank" 
+                style="display: inline-block; background: linear-gradient(45deg, #25d366, #128c7e); 
+                color: white; padding: 0.5rem 1rem; border-radius: 25px; text-decoration: none; 
+                font-weight: bold; margin: 0.5rem 0; transition: all 0.3s;" 
+                onmouseover="this.style.transform='scale(1.05)'" 
+                onmouseout="this.style.transform='scale(1)'">
+                📱 Chat WhatsApp
+            </a>`;
+        }
+
         // ===== TEST WHATSAPP FUNCTION =====
         function testWhatsApp() {
             const testMessage = `🧪 Test WhatsApp Connection - Meili China Jastip
@@ -1853,10 +2062,36 @@ ${customerNotes ? `Catatan: ${customerNotes}` : ''}
                 try {
                     window.open(whatsappUrl, '_blank');
                     closeModal('orderModal');
-                    showNotification('Pesanan berhasil dikirim ke WhatsApp!', 'success');
+                    
+                    // Show success with WhatsApp link
+                    const successMessage = `
+                        <div style="text-align: center;">
+                            <div style="margin-bottom: 0.5rem;">✅ Pesanan berhasil dibuat!</div>
+                            <div style="font-size: 0.9rem; margin-bottom: 0.5rem;">Order ID: ${orderId}</div>
+                            <a href="${whatsappUrl}" target="_blank" 
+                               style="color: white; text-decoration: underline; font-weight: bold;"
+                               onclick="this.parentElement.parentElement.parentElement.classList.remove('show')">
+                               📱 Buka WhatsApp untuk kirim pesanan
+                            </a>
+                        </div>
+                    `;
+                    showNotification(successMessage, 'success', true);
+                    
                 } catch (error) {
                     console.error('Error opening WhatsApp:', error);
-                    showNotification('Error membuka WhatsApp! Coba lagi.', 'error');
+                    
+                    // Show error with manual WhatsApp link
+                    const errorMessage = `
+                        <div style="text-align: center;">
+                            <div style="margin-bottom: 0.5rem;">⚠️ Gagal buka WhatsApp otomatis</div>
+                            <a href="${whatsappUrl}" target="_blank" 
+                               style="color: white; text-decoration: underline; font-weight: bold;"
+                               onclick="this.parentElement.parentElement.parentElement.classList.remove('show')">
+                               📱 Klik di sini untuk buka WhatsApp manual
+                            </a>
+                        </div>
+                    `;
+                    showNotification(errorMessage, 'error', true);
                 }
             } else {
                 showNotification('Error menyimpan pesanan!', 'error');
@@ -2018,15 +2253,21 @@ Ketik "HAPUS SEMUA DATA" untuk konfirmasi:`);
             }
         }
 
-        function showNotification(message, type) {
+        function showNotification(message, type, isHTML = false) {
             const notification = document.getElementById('notification');
-            notification.textContent = message;
+            
+            if (isHTML) {
+                notification.innerHTML = message;
+            } else {
+                notification.textContent = message;
+            }
+            
             notification.className = `notification ${type}`;
             notification.classList.add('show');
             
             setTimeout(() => {
                 notification.classList.remove('show');
-            }, 4000);
+            }, 6000); // Longer for HTML notifications
         }
 
         function scrollToSection(sectionId) {
@@ -2257,12 +2498,14 @@ Ketik "HAPUS SEMUA DATA" untuk konfirmasi:`);
 Fitur Tersedia:
 • 🔥 Firebase Firestore integration
 • 🖼️ Image Zoom Modal (klik foto untuk zoom)
+• 📱 WhatsApp Auto-Link & Click-to-Chat
+• 📝 Order History dengan WhatsApp integration
+• 💬 Smart WhatsApp notifications
 • Manajemen Produk & Kategori (realtime)
 • Upload Gambar dengan Kompresi
 • Backup & Restore Data
 • Real-time Search & Filter
 • Responsive Design
-• WhatsApp Order Integration
 
 Shortcut Admin:
 • Ctrl+N: Tambah Produk
@@ -2270,6 +2513,14 @@ Shortcut Admin:
 • Ctrl+K: Focus Search
 • ESC: Tutup Modal/Zoom
 • Click foto: Zoom image
+• Click WA number: Chat langsung
+
+WhatsApp Features:
+• Auto-clickable phone numbers
+• Smart order notifications dengan WA link
+• Order history dengan chat customer button
+• Test WhatsApp connection
+• Follow-up message templates
 
 Firebase Status: Connected ✅
 Project ID: meilijastip
