@@ -845,7 +845,10 @@
                     <textarea id="customerNotes" placeholder="Warna, ukuran, atau catatan khusus" rows="2"></textarea>
                 </div>
                 <button type="button" class="btn" onclick="submitOrder()" style="width: 100%;">📱 Kirim Pesanan via WhatsApp</button>
-                <button type="button" class="btn" onclick="testWhatsApp()" style="width: 100%; background: linear-gradient(45deg, #25d366, #128c7e); margin-top: 0.5rem;">🧪 Test WhatsApp</button>
+                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                    <button type="button" class="btn" onclick="testWhatsApp()" style="flex: 1; background: linear-gradient(45deg, #25d366, #128c7e); font-size: 0.9rem;">🧪 Test WA</button>
+                    <button type="button" class="btn" onclick="debugWhatsApp()" style="flex: 1; background: linear-gradient(45deg, #ffc107, #ff8f00); color: #333; font-size: 0.9rem;">🔧 Debug</button>
+                </div>
             </div>
         </div>
     </div>
@@ -1964,24 +1967,137 @@ Klik OK untuk melanjutkan.`);
 
         // ===== TEST WHATSAPP FUNCTION =====
         function testWhatsApp() {
-            const testMessage = `🧪 Test WhatsApp Connection - Meili China Jastip
+            const testMessages = [
+                'Test 1: Simple message',
+                'Test 2: Pesan dengan emoji 🧪✅',
+                `Test 3: Longer message
+Line 1: Test WhatsApp Connection
+Line 2: Meili China Jastip
+Line 3: Time ${new Date().toLocaleString('id-ID')}`
+            ];
 
-✅ Jika pesan ini masuk, WhatsApp integration berfungsi!
-🕒 Test time: ${new Date().toLocaleString('id-ID')}
-📱 WhatsApp: ${CONFIG.whatsappNumber}
+            console.log('=== WhatsApp Debug Test ===');
+            console.log('Target number:', CONFIG.whatsappNumber);
+            
+            testMessages.forEach((message, index) => {
+                const urls = [
+                    `https://wa.me/${CONFIG.whatsappNumber}?text=${encodeURIComponent(message)}`,
+                    `https://api.whatsapp.com/send?phone=${CONFIG.whatsappNumber}&text=${encodeURIComponent(message)}`,
+                    `whatsapp://send?phone=${CONFIG.whatsappNumber}&text=${encodeURIComponent(message)}`
+                ];
+                
+                console.log(`Test ${index + 1} URLs:`, urls);
+                console.log(`Message length: ${message.length}, Encoded: ${encodeURIComponent(message).length}`);
+                
+                // Only open the first URL for actual test
+                if (index === 0) {
+                    try {
+                        console.log('Opening test URL:', urls[0]);
+                        const popup = window.open(urls[0], '_blank');
+                        if (popup) {
+                            showNotification(`Test WhatsApp berhasil! Cek apakah pesan "${message}" masuk.`, 'success');
+                        } else {
+                            showNotification('Popup blocked! Allow popups untuk WhatsApp.', 'error');
+                        }
+                    } catch (error) {
+                        console.error('WhatsApp test error:', error);
+                        showNotification('Error testing WhatsApp! Cek console untuk detail.', 'error');
+                    }
+                }
+            });
+        }
 
-Silakan balas "OK" untuk konfirmasi.`;
+        function debugWhatsApp() {
+            const debugInfo = `
+🔧 WhatsApp Debug Info:
 
-            const whatsappUrl = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodeURIComponent(testMessage)}`;
-            console.log('Testing WhatsApp URL:', whatsappUrl);
+📱 Target Number: ${CONFIG.whatsappNumber}
+🌐 Browser: ${navigator.userAgent}
+📱 Mobile: ${/Mobi|Android/i.test(navigator.userAgent)}
+🖥️ Platform: ${navigator.platform}
+🔒 HTTPS: ${location.protocol === 'https:'}
+🚫 Popup Blocked: ${!window.open('about:blank').close()}
+
+🧪 Test URLs:
+1. wa.me/${CONFIG.whatsappNumber}
+2. api.whatsapp.com/send?phone=${CONFIG.whatsappNumber}
+3. whatsapp://send?phone=${CONFIG.whatsappNumber}
+
+💡 Troubleshooting:
+- Allow popups untuk domain ini
+- Pastikan WhatsApp terinstall (mobile)
+- Cek nomor WA format: ${CONFIG.whatsappNumber}
+- Test di browser berbeda (Chrome/Safari)
+            `.trim();
+
+            // Show in modal instead of notification
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                background: rgba(0,0,0,0.8); z-index: 3000; 
+                display: flex; align-items: center; justify-content: center;
+            `;
+            
+            modal.innerHTML = `
+                <div style="background: white; padding: 2rem; border-radius: 15px; max-width: 90vw; max-height: 80vh; overflow-y: auto;">
+                    <h3 style="margin-bottom: 1rem; color: #333;">🔧 WhatsApp Debug</h3>
+                    <pre style="background: #f8f9fa; padding: 1rem; border-radius: 8px; overflow-x: auto; font-size: 0.9rem; white-space: pre-wrap;">${debugInfo}</pre>
+                    <div style="margin-top: 1rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <button onclick="testWAFormat(1)" style="background: #25d366; color: white; border: none; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer;">Test wa.me</button>
+                        <button onclick="testWAFormat(2)" style="background: #128c7e; color: white; border: none; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer;">Test api.whatsapp</button>
+                        <button onclick="testWAFormat(3)" style="background: #075e54; color: white; border: none; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer;">Test whatsapp://</button>
+                        <button onclick="copyWANumber()" style="background: #007bff; color: white; border: none; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer;">Copy Number</button>
+                        <button onclick="this.parentElement.parentElement.parentElement.remove()" style="background: #dc3545; color: white; border: none; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer;">Tutup</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            modal.onclick = function(e) {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            };
+        }
+
+        function testWAFormat(format) {
+            const message = 'Test format WhatsApp - Meili China Jastip';
+            let url;
+            
+            switch(format) {
+                case 1:
+                    url = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodeURIComponent(message)}`;
+                    break;
+                case 2:
+                    url = `https://api.whatsapp.com/send?phone=${CONFIG.whatsappNumber}&text=${encodeURIComponent(message)}`;
+                    break;
+                case 3:
+                    url = `whatsapp://send?phone=${CONFIG.whatsappNumber}&text=${encodeURIComponent(message)}`;
+                    break;
+            }
+            
+            console.log(`Testing format ${format}:`, url);
             
             try {
-                window.open(whatsappUrl, '_blank');
-                showNotification('Test WhatsApp dibuka! Cek apakah pesan masuk.', 'success');
+                const popup = window.open(url, '_blank');
+                if (popup) {
+                    showNotification(`Format ${format} berhasil dibuka!`, 'success');
+                } else {
+                    showNotification(`Format ${format} gagal - popup blocked!`, 'error');
+                }
             } catch (error) {
-                console.error('Error testing WhatsApp:', error);
-                showNotification('Error membuka WhatsApp! Cek browser/device.', 'error');
+                console.error(`Format ${format} error:`, error);
+                showNotification(`Format ${format} error: ${error.message}`, 'error');
             }
+        }
+
+        function copyWANumber() {
+            navigator.clipboard.writeText(CONFIG.whatsappNumber).then(() => {
+                showNotification('Nomor WhatsApp berhasil dicopy!', 'success');
+            }).catch(() => {
+                showNotification('Gagal copy nomor WhatsApp!', 'error');
+            });
         }
 
         // ===== ORDER MANAGEMENT =====
@@ -2039,63 +2155,118 @@ Silakan balas "OK" untuk konfirmasi.`;
                 updateStats();
                 console.log('Order saved with ID:', orderId);
 
-                const message = `🛍️ *PESANAN BARU MEILI CHINA JASTIP*
+                // Simple message tanpa formatting berlebihan
+                const message = `PESANAN BARU MEILI CHINA JASTIP
 
-📦 *Produk:* ${productName}
-💰 *Harga:* ${productPrice}
+Produk: ${productName}
+Harga: ${productPrice}
 
-👤 *Data Customer:*
+Data Customer:
 Nama: ${customerName}
 HP: ${customerPhone}
 Alamat: ${customerAddress}
 ${customerNotes ? `Catatan: ${customerNotes}` : ''}
 
-⏰ Waktu Pesan: ${new Date().toLocaleString('id-ID')}
-🆔 Order ID: ${orderId}
+Waktu Pesan: ${new Date().toLocaleString('id-ID')}
+Order ID: ${orderId}
 
-✨ Mohon konfirmasi ketersediaan produk dan estimasi waktu pengiriman. Terima kasih!`;
+Mohon konfirmasi ketersediaan produk. Terima kasih!`;
 
-                const whatsappUrl = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodeURIComponent(message)}`;
-                console.log('Opening WhatsApp URL:', whatsappUrl);
+                // Multiple WhatsApp URL attempts
+                const whatsappUrls = [
+                    `https://wa.me/${CONFIG.whatsappNumber}?text=${encodeURIComponent(message)}`,
+                    `https://api.whatsapp.com/send?phone=${CONFIG.whatsappNumber}&text=${encodeURIComponent(message)}`,
+                    `whatsapp://send?phone=${CONFIG.whatsappNumber}&text=${encodeURIComponent(message)}`
+                ];
+
+                console.log('WhatsApp URLs to try:', whatsappUrls);
+                console.log('Message length:', message.length);
+                console.log('Encoded message length:', encodeURIComponent(message).length);
                 
-                // Try opening WhatsApp
-                try {
-                    window.open(whatsappUrl, '_blank');
-                    closeModal('orderModal');
+                closeModal('orderModal');
+                
+                // Try multiple methods
+                let success = false;
+                
+                for (let i = 0; i < whatsappUrls.length && !success; i++) {
+                    try {
+                        console.log(`Trying WhatsApp URL ${i + 1}:`, whatsappUrls[i]);
+                        const popup = window.open(whatsappUrls[i], '_blank');
+                        
+                        if (popup) {
+                            success = true;
+                            console.log(`WhatsApp URL ${i + 1} berhasil!`);
+                            
+                            const successMessage = `
+                                <div style="text-align: center;">
+                                    <div style="margin-bottom: 0.5rem;">✅ Pesanan berhasil dibuat!</div>
+                                    <div style="font-size: 0.9rem; margin-bottom: 0.5rem;">Order ID: ${orderId}</div>
+                                    <div style="font-size: 0.8rem;">WhatsApp akan terbuka untuk kirim pesanan</div>
+                                </div>
+                            `;
+                            showNotification(successMessage, 'success', true);
+                            break;
+                        }
+                    } catch (error) {
+                        console.error(`WhatsApp URL ${i + 1} failed:`, error);
+                    }
+                }
+                
+                // If all methods failed, show manual options
+                if (!success) {
+                    console.error('All WhatsApp methods failed');
                     
-                    // Show success with WhatsApp link
-                    const successMessage = `
-                        <div style="text-align: center;">
-                            <div style="margin-bottom: 0.5rem;">✅ Pesanan berhasil dibuat!</div>
-                            <div style="font-size: 0.9rem; margin-bottom: 0.5rem;">Order ID: ${orderId}</div>
-                            <a href="${whatsappUrl}" target="_blank" 
-                               style="color: white; text-decoration: underline; font-weight: bold;"
-                               onclick="this.parentElement.parentElement.parentElement.classList.remove('show')">
-                               📱 Buka WhatsApp untuk kirim pesanan
-                            </a>
-                        </div>
-                    `;
-                    showNotification(successMessage, 'success', true);
-                    
-                } catch (error) {
-                    console.error('Error opening WhatsApp:', error);
-                    
-                    // Show error with manual WhatsApp link
-                    const errorMessage = `
+                    const manualMessage = `
                         <div style="text-align: center;">
                             <div style="margin-bottom: 0.5rem;">⚠️ Gagal buka WhatsApp otomatis</div>
-                            <a href="${whatsappUrl}" target="_blank" 
-                               style="color: white; text-decoration: underline; font-weight: bold;"
-                               onclick="this.parentElement.parentElement.parentElement.classList.remove('show')">
-                               📱 Klik di sini untuk buka WhatsApp manual
-                            </a>
+                            <div style="margin-bottom: 0.5rem;">Order ID: ${orderId}</div>
+                            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                <button onclick="copyOrderMessage('${orderId}')" 
+                                        style="background: #007bff; color: white; border: none; padding: 0.5rem; border-radius: 5px; cursor: pointer;">
+                                    📋 Copy Pesan Order
+                                </button>
+                                <a href="https://wa.me/${CONFIG.whatsappNumber}" target="_blank" 
+                                   style="background: #25d366; color: white; padding: 0.5rem; border-radius: 5px; text-decoration: none; display: block;"
+                                   onclick="this.parentElement.parentElement.parentElement.parentElement.classList.remove('show')">
+                                   📱 Buka WhatsApp Manual
+                                </a>
+                            </div>
                         </div>
                     `;
-                    showNotification(errorMessage, 'error', true);
+                    showNotification(manualMessage, 'error', true);
                 }
+                
             } else {
                 showNotification('Error menyimpan pesanan!', 'error');
             }
+        }
+
+        function copyOrderMessage(orderId) {
+            const order = appState.orders.find(o => o.id === orderId);
+            if (!order) return;
+
+            const message = `PESANAN BARU MEILI CHINA JASTIP
+
+Produk: ${order.productName}
+Harga: ${order.productPrice}
+
+Data Customer:
+Nama: ${order.customerName}
+HP: ${order.customerPhone}
+Alamat: ${order.customerAddress}
+${order.customerNotes ? `Catatan: ${order.customerNotes}` : ''}
+
+Waktu Pesan: ${new Date(order.timestamp).toLocaleString('id-ID')}
+Order ID: ${order.id}
+
+Mohon konfirmasi ketersediaan produk. Terima kasih!`;
+
+            navigator.clipboard.writeText(message).then(() => {
+                showNotification('Pesan order berhasil dicopy! Paste di WhatsApp manual.', 'success');
+                document.querySelector('.notification').classList.remove('show');
+            }).catch(() => {
+                showNotification('Gagal copy pesan!', 'error');
+            });
         }
 
         // ===== BACKUP AND RESTORE =====
