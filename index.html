@@ -772,7 +772,7 @@
                 <div class="contact-details">
                     <div class="contact-item">
                         <span>📱</span>
-                        <span>WhatsApp: 082276882317</span>
+                        <span>WhatsApp: 62-838-5412-8536</span>
                     </div>
                     <div class="contact-item">
                         <span>📸</span>
@@ -823,6 +823,7 @@
                     <textarea id="customerNotes" placeholder="Warna, ukuran, atau catatan khusus" rows="2"></textarea>
                 </div>
                 <button type="button" class="btn" onclick="submitOrder()" style="width: 100%;">📱 Kirim Pesanan via WhatsApp</button>
+                <button type="button" class="btn" onclick="testWhatsApp()" style="width: 100%; background: linear-gradient(45deg, #25d366, #128c7e); margin-top: 0.5rem;">🧪 Test WhatsApp</button>
             </div>
         </div>
     </div>
@@ -949,7 +950,7 @@
         const CONFIG = {
             adminPassword: 'meili2024!@#',
             allowedImageTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'],
-            whatsappNumber: '6282276882317'
+            whatsappNumber: '6283854128536'
         };
 
         // ===== FIREBASE DATA MANAGEMENT =====
@@ -1752,6 +1753,28 @@
             document.getElementById('searchInput').placeholder = `Cari di ${categoryName}...`;
         }
 
+        // ===== TEST WHATSAPP FUNCTION =====
+        function testWhatsApp() {
+            const testMessage = `🧪 Test WhatsApp Connection - Meili China Jastip
+
+✅ Jika pesan ini masuk, WhatsApp integration berfungsi!
+🕒 Test time: ${new Date().toLocaleString('id-ID')}
+📱 WhatsApp: ${CONFIG.whatsappNumber}
+
+Silakan balas "OK" untuk konfirmasi.`;
+
+            const whatsappUrl = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodeURIComponent(testMessage)}`;
+            console.log('Testing WhatsApp URL:', whatsappUrl);
+            
+            try {
+                window.open(whatsappUrl, '_blank');
+                showNotification('Test WhatsApp dibuka! Cek apakah pesan masuk.', 'success');
+            } catch (error) {
+                console.error('Error testing WhatsApp:', error);
+                showNotification('Error membuka WhatsApp! Cek browser/device.', 'error');
+            }
+        }
+
         // ===== ORDER MANAGEMENT =====
         function openOrderModal(productId) {
             const product = appState.products.find(p => p.id === productId);
@@ -1779,6 +1802,8 @@
             const customerAddress = document.getElementById('customerAddress').value.trim();
             const customerNotes = document.getElementById('customerNotes').value.trim();
 
+            console.log('Submit order started:', { productName, customerName, customerPhone });
+
             if (!customerName || !customerPhone || !customerAddress) {
                 showNotification('Mohon lengkapi semua field yang wajib diisi!', 'error');
                 return;
@@ -1798,9 +1823,12 @@
                 customerNotes
             };
 
+            console.log('Saving order to Firebase:', orderData);
             const orderId = await FirebaseManager.saveOrder(orderData);
+            
             if (orderId) {
                 updateStats();
+                console.log('Order saved with ID:', orderId);
 
                 const message = `🛍️ *PESANAN BARU MEILI CHINA JASTIP*
 
@@ -1819,10 +1847,17 @@ ${customerNotes ? `Catatan: ${customerNotes}` : ''}
 ✨ Mohon konfirmasi ketersediaan produk dan estimasi waktu pengiriman. Terima kasih!`;
 
                 const whatsappUrl = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodeURIComponent(message)}`;
-                window.open(whatsappUrl, '_blank');
+                console.log('Opening WhatsApp URL:', whatsappUrl);
                 
-                closeModal('orderModal');
-                showNotification('Pesanan berhasil dikirim ke WhatsApp!', 'success');
+                // Try opening WhatsApp
+                try {
+                    window.open(whatsappUrl, '_blank');
+                    closeModal('orderModal');
+                    showNotification('Pesanan berhasil dikirim ke WhatsApp!', 'success');
+                } catch (error) {
+                    console.error('Error opening WhatsApp:', error);
+                    showNotification('Error membuka WhatsApp! Coba lagi.', 'error');
+                }
             } else {
                 showNotification('Error menyimpan pesanan!', 'error');
             }
@@ -2216,7 +2251,7 @@ Ketik "HAPUS SEMUA DATA" untuk konfirmasi:`);
 ✅ Sistem berhasil dimuat!
 🔥 Firebase Firestore integration aktif!
 🔧 Developer Tools tersedia di window.MeiliApp
-📱 WhatsApp: 082276882317
+📱 WhatsApp: 62-838-5412-8536
 📸 Instagram: @meili.china.jastip.po
 
 Fitur Tersedia:
