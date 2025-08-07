@@ -805,8 +805,7 @@
                 <button class="admin-btn" onclick="openAddCategoryModal()">📂 Tambah Kategori</button>
                 <button class="admin-btn" onclick="manageCategoriesView()">📋 Kelola Kategori</button>
                 <button class="admin-btn" onclick="viewOrderHistory()">📝 Lihat Pesanan</button>
-                <button class="admin-btn" onclick="forceFixCarousel()" style="background: linear-gradient(45deg, #ff6b6b, #4ecdc4);">🎠 Fix Carousel</button>
-                <button class="admin-btn" onclick="testCarousel()" style="background: linear-gradient(45deg, #ffc107, #ff8f00);">🧪 Test Carousel</button>
+                <button class="admin-btn" onclick="testSimpleCarousel()" style="background: linear-gradient(45deg, #ff6b6b, #4ecdc4);">🎠 Test Carousel</button>
                 <button class="admin-btn danger" onclick="clearAllData()">🗑️ Reset Data</button>
             </div>
             
@@ -829,11 +828,11 @@
                 <button class="search-btn" onclick="searchProducts()">🔍 Cari</button>
             </div>
             
-            <!-- Carousel Fix Button for Everyone -->
+            <!-- Simple Carousel Test -->
             <div style="text-align: center; margin-top: 1rem;">
-                <button onclick="forceFixCarousel()" 
+                <button onclick="testSimpleCarousel()" 
                         style="background: linear-gradient(45deg, #ff6b6b, #4ecdc4); color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 25px; cursor: pointer; font-weight: bold; transition: all 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
-                    🎠 Fix Image Carousel (Klik jika gambar tidak bergerak)
+                    🎠 Test Carousel (Klik untuk test semua gambar bergerak)
                 </button>
             </div>
         </section>
@@ -1731,11 +1730,11 @@
                 updateStats();
                 closeModal('productModal');
                 
-                // Auto-fix carousels after saving new product
+                // Start simple carousels after saving new product
                 setTimeout(() => {
-                    console.log('🎠 Auto-fixing carousels after product save...');
-                    forceFixCarousel();
-                }, 800);
+                    startSimpleCarousels();
+                    console.log('✅ Simple carousels restarted after save!');
+                }, 300);
             }
         }
 
@@ -2141,35 +2140,11 @@ Klik OK untuk melanjutkan.`);
                 
                 productContainer.innerHTML = html;
                 
-                // IMMEDIATE carousel fix after render
-                console.log('🎠 Force initializing carousels NOW...');
-                
-                // Multiple attempts to ensure carousel works
-                setTimeout(() => initCarousels(), 50);
-                setTimeout(() => initCarousels(), 200);
-                setTimeout(() => initCarousels(), 500);
-                setTimeout(() => setupCarouselAutoPlay(), 600);
-                
-                // Show manual refresh button if carousel fails
+                // Start simple carousels
                 setTimeout(() => {
-                    const carousels = document.querySelectorAll('.product-image-carousel');
-                    const workingCarousels = Array.from(carousels).filter(c => 
-                        c.querySelector('.carousel-images').style.transform !== '' ||
-                        c.querySelectorAll('.indicator').length > 1
-                    );
-                    
-                    if (carousels.length > 0 && workingCarousels.length === 0) {
-                        showNotification(`
-                            <div style="text-align: center;">
-                                <div>⚠️ Carousel butuh refresh manual</div>
-                                <button onclick="window.location.reload()" 
-                                        style="background: #28a745; color: white; border: none; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer; margin-top: 0.5rem;">
-                                    🔄 Refresh Halaman
-                                </button>
-                            </div>
-                        `, 'error', true);
-                    }
-                }, 1000);
+                    startSimpleCarousels();
+                    console.log('✅ Simple carousels started!');
+                }, 100);
             }, 100);
         }
 
@@ -2648,7 +2623,116 @@ Ketik "HAPUS SEMUA DATA" untuk konfirmasi:`);
             }
         }
 
-        // ===== FORCE FIX CAROUSEL FUNCTION =====
+        // ===== SIMPLE CAROUSEL FUNCTIONS =====
+        function nextImage(button) {
+            const carousel = button.parentElement;
+            const images = JSON.parse(carousel.dataset.images);
+            let current = parseInt(carousel.dataset.current);
+            
+            current = (current + 1) % images.length;
+            carousel.dataset.current = current;
+            
+            // Update main image
+            const mainImg = carousel.querySelector('.carousel-main-image');
+            mainImg.src = images[current];
+            
+            // Update dots
+            updateDots(carousel, current);
+            
+            console.log(`Next: showing image ${current + 1} of ${images.length}`);
+        }
+
+        function prevImage(button) {
+            const carousel = button.parentElement;
+            const images = JSON.parse(carousel.dataset.images);
+            let current = parseInt(carousel.dataset.current);
+            
+            current = (current - 1 + images.length) % images.length;
+            carousel.dataset.current = current;
+            
+            // Update main image
+            const mainImg = carousel.querySelector('.carousel-main-image');
+            mainImg.src = images[current];
+            
+            // Update dots
+            updateDots(carousel, current);
+            
+            console.log(`Prev: showing image ${current + 1} of ${images.length}`);
+        }
+
+        function goToImage(dot, index) {
+            const carousel = dot.parentElement.parentElement;
+            const images = JSON.parse(carousel.dataset.images);
+            
+            carousel.dataset.current = index;
+            
+            // Update main image
+            const mainImg = carousel.querySelector('.carousel-main-image');
+            mainImg.src = images[index];
+            
+            // Update dots
+            updateDots(carousel, index);
+            
+            console.log(`Go to: showing image ${index + 1} of ${images.length}`);
+        }
+
+        function updateDots(carousel, currentIndex) {
+            const images = JSON.parse(carousel.dataset.images);
+            
+            for (let i = 0; i < images.length; i++) {
+                const dot = carousel.querySelector(`.dot-${i}`);
+                if (dot) {
+                    dot.style.background = i === currentIndex ? 'white' : 'rgba(255,255,255,0.5)';
+                }
+            }
+        }
+
+        // Auto-advance simple carousel
+        function startSimpleCarousels() {
+            const carousels = document.querySelectorAll('.simple-carousel');
+            
+            carousels.forEach(carousel => {
+                const images = JSON.parse(carousel.dataset.images);
+                if (images.length > 1) {
+                    // Auto-advance every 4 seconds
+                    setInterval(() => {
+                        const nextBtn = carousel.querySelector('button[onclick*="nextImage"]');
+                        if (nextBtn) {
+                            nextImage(nextBtn);
+                        }
+                    }, 4000);
+                }
+            });
+        }
+
+        // ===== OLD CAROUSEL FUNCTIONS (KEEP FOR COMPATIBILITY) =====
+        // Test simple carousel
+        function testSimpleCarousel() {
+            const carousels = document.querySelectorAll('.simple-carousel');
+            console.log(`🎠 Found ${carousels.length} simple carousels`);
+            
+            if (carousels.length === 0) {
+                showNotification('Tidak ada multiple images ditemukan! Upload produk dengan 2+ gambar dulu.', 'error');
+                return;
+            }
+            
+            let tested = 0;
+            carousels.forEach((carousel, index) => {
+                const images = JSON.parse(carousel.dataset.images);
+                if (images.length > 1) {
+                    setTimeout(() => {
+                        const nextBtn = carousel.querySelector('button[onclick*="nextImage"]');
+                        if (nextBtn) {
+                            nextImage(nextBtn);
+                            tested++;
+                        }
+                    }, index * 500);
+                }
+            });
+            
+            showNotification(`✅ Testing ${carousels.length} carousels - lihat gambar bergerak!`, 'success');
+        }
+
         function forceFixCarousel() {
             console.log('🔧 FORCE FIXING CAROUSEL...');
             
@@ -3475,9 +3559,10 @@ Ketik "HAPUS SEMUA DATA" untuk konfirmasi:`);
 
 Fitur Tersedia:
 • 🔥 Firebase Firestore integration
-• 🖼️ Multiple Images Upload & Gallery (FIXED)
-• 🎠 Image Carousel dengan auto-play & swipe
-• 📸 Touch-friendly navigation untuk mobile
+• 🖼️ SIMPLE Multiple Images Carousel (FIXED & RELIABLE)
+• 🎠 Basic image navigation dengan prev/next buttons
+• 📍 Dot indicators untuk jump ke gambar
+• ⏱️ Auto-advance tiap 4 detik
 • 🔍 Image Zoom Modal & Product Gallery
 • 📱 WhatsApp Auto-Link & Click-to-Chat
 • 📝 Order History dengan WhatsApp integration
@@ -3488,32 +3573,32 @@ Fitur Tersedia:
 • Real-time Search & Filter
 • Responsive Design
 
-Image Carousel Features:
+Simple Carousel Features:
+• Single img element (no complex CSS)
+• JavaScript prev/next navigation
+• Dot click untuk jump ke gambar
 • Auto-advance setiap 4 detik
-• Hover to pause (desktop)
-• Touch swipe navigation (mobile)
-• Click navigation dengan prev/next buttons
-• Dot indicators untuk jump ke gambar tertentu
-• Visual swipe feedback
-• Auto-resume setelah interaksi
+• No complex transforms atau timing issues
+• Reliable dan simple approach
 
-Debug Commands (Admin):
-• testCarousel() - Test semua carousel
-• refreshCarousels() - Force refresh carousel
-• initCarousels() - Re-initialize carousel
+Commands:
+• testSimpleCarousel() - Test semua carousel
+• nextImage(button) - Manual next
+• prevImage(button) - Manual prev
+• goToImage(dot, index) - Jump ke gambar
 
 Shortcut Admin:
 • Ctrl+N: Tambah Produk
 • Ctrl+B: Backup Data  
 • Ctrl+K: Focus Search
 • ESC: Tutup Modal/Gallery
-• Arrow Keys: Navigate gallery
-• Swipe: Navigate carousel (mobile)
+• Click arrows: Navigate carousel
+• Click dots: Jump to image
 • Click foto: Zoom/Gallery
-• Click WA number: Chat langsung
 
 Firebase Status: Connected ✅
 Project ID: meilijastip
+CAROUSEL: Simple & Reliable ✅
         `);
     </script>
 </body>
