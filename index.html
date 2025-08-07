@@ -271,22 +271,67 @@
             transform: scale(1.1);
         }
 
-        .product-image-simple {
+        .product-image-carousel {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(45deg, #f093fb, #f5576c, #4facfe);
+            position: relative;
+            overflow: hidden;
             cursor: pointer;
             transition: transform 0.3s ease;
+            user-select: none;
         }
 
-        .product-image-simple:hover {
+        .product-image-carousel:hover {
             transform: scale(1.02);
         }
 
-        .product-image-simple button {
-            opacity: 0;
-            transition: opacity 0.3s ease;
+        .product-image-carousel .carousel-images {
+            display: flex;
+            height: 100%;
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: transform;
         }
 
-        .product-image-simple:hover button {
+        .product-image-carousel .carousel-images img {
+            flex-shrink: 0;
+            object-fit: cover;
+            height: 100%;
+            user-select: none;
+            pointer-events: none;
+        }
+
+        .carousel-nav {
+            opacity: 0;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            will-change: opacity, transform;
+        }
+
+        .product-image-carousel:hover .carousel-nav {
             opacity: 1;
+        }
+
+        .carousel-nav:hover {
+            transform: scale(1.1);
+            background: rgba(0,0,0,0.8) !important;
+        }
+
+        .carousel-indicators {
+            z-index: 10;
+        }
+
+        .carousel-indicators .indicator {
+            transition: all 0.3s ease;
+            will-change: background, transform;
+        }
+
+        .carousel-indicators .indicator:hover {
+            background: white !important;
+            transform: scale(1.3);
+        }
+
+        .carousel-indicators .indicator.active {
+            background: white !important;
         }
 
         .product-info {
@@ -701,6 +746,20 @@
                 font-size: 1.5rem;
             }
         }
+
+        /* Carousel feedback animations */
+        @keyframes carouselFeedback {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+            20% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+            80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+        }
+
+        @keyframes swipeFeedback {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+        }
     </style>
 </head>
 <body>
@@ -760,6 +819,8 @@
                 <button class="admin-btn" onclick="openAddCategoryModal()">📂 Tambah Kategori</button>
                 <button class="admin-btn" onclick="manageCategoriesView()">📋 Kelola Kategori</button>
                 <button class="admin-btn" onclick="viewOrderHistory()">📝 Lihat Pesanan</button>
+                <button class="admin-btn" onclick="testCarousel()" style="background: linear-gradient(45deg, #ffc107, #ff8f00);">🎠 Test Carousel</button>
+                <button class="admin-btn" onclick="refreshCarousels()" style="background: linear-gradient(45deg, #17a2b8, #138496);">🔄 Refresh Carousel</button>
                 <button class="admin-btn danger" onclick="clearAllData()">🗑️ Reset Data</button>
             </div>
             
@@ -828,7 +889,7 @@
 
         <footer class="footer">
             <p>&copy; 2024 Meili China Jastip. Jasa Titip Terpercaya dari China.</p>
-            <p>🚀 Powered by Firebase + Advanced Admin System v2.0</p>
+            <p>🚀 Powered by Firebase + Advanced Admin System v2.0 + Multiple Images Carousel</p>
         </footer>
     </div>
 
@@ -1064,6 +1125,7 @@
                         price: 150000,
                         category: appState.categories[0]?.id || '',
                         description: 'Dress cantik dengan model Korea terbaru, bahan premium dan nyaman dipakai.',
+                        images: [],
                         image: null,
                         emoji: '👗',
                         createdAt: new Date().toISOString()
@@ -1073,26 +1135,9 @@
                         price: 75000,
                         category: appState.categories[1]?.id || '',
                         description: 'Case HP kualitas premium dengan desain unik dan perlindungan maksimal.',
+                        images: [],
                         image: null,
                         emoji: '📱',
-                        createdAt: new Date().toISOString()
-                    },
-                    {
-                        name: 'Lipstick Set',
-                        price: 120000,
-                        category: appState.categories[2]?.id || '',
-                        description: 'Set lipstik dengan 5 warna cantik, tahan lama dan melembabkan bibir.',
-                        image: null,
-                        emoji: '💄',
-                        createdAt: new Date().toISOString()
-                    },
-                    {
-                        name: 'Boneka Lucu',
-                        price: 95000,
-                        category: appState.categories[3]?.id || '',
-                        description: 'Boneka super lucu dan lembut, cocok untuk hadiah atau koleksi.',
-                        image: null,
-                        emoji: '🧸',
                         createdAt: new Date().toISOString()
                     }
                 ];
@@ -1281,12 +1326,6 @@
 
             static async processImage(file) {
                 if (!this.validateImage(file)) return null;
-
-                const preview = document.getElementById('imagePreview');
-                if (preview) {
-                    preview.style.display = 'block';
-                    preview.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjBmMGYwIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk1lbXByb3NlcyBnYW1iYXIuLi48L3RleHQ+PC9zdmc+';
-                }
 
                 try {
                     const compressedFile = await this.compressImage(file);
@@ -1495,9 +1534,6 @@
                     <div style="text-align: center; margin-top: 1rem; font-size: 0.9rem; color: #666;">
                         📸 ${images.length} gambar dipilih. Gambar pertama akan jadi foto utama.
                         <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
-                            <button onclick="reorderImages()" style="background: #007bff; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 15px; cursor: pointer; font-size: 0.8rem;">
-                                🔄 Ubah Urutan
-                            </button>
                             <button onclick="clearAllImages()" style="background: #dc3545; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 15px; cursor: pointer; font-size: 0.8rem;">
                                 🗑️ Hapus Semua
                             </button>
@@ -1545,102 +1581,6 @@
             }
         }
 
-        function reorderImages() {
-            const imageInput = document.getElementById('productImage');
-            if (!imageInput.processedImages || imageInput.processedImages.length < 2) return;
-            
-            const images = imageInput.processedImages;
-            const modal = document.createElement('div');
-            modal.style.cssText = `
-                position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-                background: rgba(0,0,0,0.8); z-index: 3000; 
-                display: flex; align-items: center; justify-content: center;
-            `;
-            
-            let html = `
-                <div style="background: white; padding: 2rem; border-radius: 15px; max-width: 90vw; max-height: 80vh; overflow-y: auto;">
-                    <h3 style="margin-bottom: 1rem; color: #333;">🔄 Ubah Urutan Gambar</h3>
-                    <p style="margin-bottom: 1rem; color: #666;">Drag & drop untuk mengubah urutan. Gambar pertama akan jadi foto utama.</p>
-                    <div id="reorderContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 1rem;">
-            `;
-            
-            images.forEach((image, index) => {
-                html += `
-                    <div draggable="true" data-index="${index}" class="reorder-item" 
-                         style="border: 2px solid #ddd; border-radius: 10px; overflow: hidden; cursor: move; position: relative;">
-                        <img src="${image}" style="width: 100%; height: 100px; object-fit: cover;">
-                        <div style="position: absolute; bottom: 5px; left: 5px; background: rgba(0,0,0,0.7); color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.7rem;">
-                            ${index + 1}
-                        </div>
-                    </div>
-                `;
-            });
-            
-            html += `
-                    </div>
-                    <div style="margin-top: 1rem; display: flex; gap: 1rem; justify-content: center;">
-                        <button onclick="applyReorder()" style="background: #28a745; color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 25px; cursor: pointer;">✅ Terapkan Urutan</button>
-                        <button onclick="this.parentElement.parentElement.parentElement.remove()" style="background: #dc3545; color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 25px; cursor: pointer;">❌ Batal</button>
-                    </div>
-                </div>
-            `;
-            
-            modal.innerHTML = html;
-            document.body.appendChild(modal);
-            
-            // Add drag and drop functionality
-            const container = modal.querySelector('#reorderContainer');
-            let draggedItem = null;
-            
-            container.addEventListener('dragstart', function(e) {
-                draggedItem = e.target.closest('.reorder-item');
-                draggedItem.style.opacity = '0.5';
-            });
-            
-            container.addEventListener('dragend', function(e) {
-                if (draggedItem) {
-                    draggedItem.style.opacity = '1';
-                    draggedItem = null;
-                }
-            });
-            
-            container.addEventListener('dragover', function(e) {
-                e.preventDefault();
-            });
-            
-            container.addEventListener('drop', function(e) {
-                e.preventDefault();
-                const targetItem = e.target.closest('.reorder-item');
-                
-                if (draggedItem && targetItem && draggedItem !== targetItem) {
-                    const draggedIndex = parseInt(draggedItem.dataset.index);
-                    const targetIndex = parseInt(targetItem.dataset.index);
-                    
-                    // Swap images in array
-                    const temp = images[draggedIndex];
-                    images[draggedIndex] = images[targetIndex];
-                    images[targetIndex] = temp;
-                    
-                    // Update visual order
-                    const tempContent = draggedItem.innerHTML;
-                    draggedItem.innerHTML = targetItem.innerHTML;
-                    targetItem.innerHTML = tempContent;
-                    
-                    // Update data attributes
-                    draggedItem.dataset.index = targetIndex;
-                    targetItem.dataset.index = draggedIndex;
-                }
-            });
-            
-            // Make applyReorder available globally
-            window.applyReorder = function() {
-                imageInput.processedImages = images;
-                displayImagePreviews(images);
-                modal.remove();
-                showNotification('Urutan gambar berhasil diubah!', 'success');
-            };
-        }
-
         async function deleteProduct(productId) {
             if (appState.currentUser !== 'admin') return;
             
@@ -1665,19 +1605,793 @@
                 price,
                 category,
                 description,
-                images: images && images.length > 0 ? images : [], // Save all images
-                image: images && images.length > 0 ? images[0] : null, // First image for compatibility
+                images: images || [],
+                image: images && images.length > 0 ? images[0] : null, // Keep backward compatibility
                 emoji
             };
-
-            console.log('Saving product with images:', productData.images.length);
 
             const success = await FirebaseManager.saveProduct(productData);
             if (success) {
                 loadProducts();
                 updateStats();
                 closeModal('productModal');
+                
+                // Refresh carousels after saving new product
+                setTimeout(() => {
+                    console.log('🎠 Refreshing carousels after product save...');
+                    refreshCarousels();
+                }, 500);
             }
+        }
+
+        // ===== DISPLAY FUNCTIONS =====
+        function loadCategories() {
+            const categoriesContainer = document.getElementById('categoriesSection');
+            
+            if (appState.categories.length === 0) {
+                categoriesContainer.innerHTML = '';
+                return;
+            }
+
+            let html = `
+                <div class="category-card ${appState.currentFilter === 'all' ? 'active' : ''}" onclick="filterProducts('all')">
+                    <h3>🛍️ Semua Produk</h3>
+                    <p>${appState.products.length} item</p>
+                </div>
+            `;
+
+            appState.categories.forEach(category => {
+                const productCount = appState.products.filter(p => p.category === category.id).length;
+                html += `
+                    <div class="category-card ${appState.currentFilter === category.id ? 'active' : ''}" onclick="filterProducts('${category.id}')">
+                        <h3>${category.emoji} ${category.name}</h3>
+                        <p>${category.description}</p>
+                        <small>${productCount} produk</small>
+                    </div>
+                `;
+            });
+
+            categoriesContainer.innerHTML = html;
+        }
+
+        function loadProducts() {
+            const productContainer = document.getElementById('products');
+            
+            productContainer.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: white;">
+                    <div style="font-size: 2rem; margin-bottom: 1rem;">⏳</div>
+                    <p>Memuat produk dari Firebase...</p>
+                </div>
+            `;
+            
+            setTimeout(() => {
+                if (appState.products.length === 0) {
+                    productContainer.innerHTML = `
+                        <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: white;">
+                            <h3>📦 Belum ada produk</h3>
+                            <p>${appState.currentUser === 'admin' ? 'Tambahkan produk pertama melalui Admin Panel!' : 'Belum ada produk tersedia saat ini.'}</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let filteredProducts = appState.products;
+                
+                if (appState.currentFilter !== 'all') {
+                    filteredProducts = filteredProducts.filter(p => p.category === appState.currentFilter);
+                }
+                
+                if (appState.searchTerm) {
+                    filteredProducts = filteredProducts.filter(p => 
+                        p.name.toLowerCase().includes(appState.searchTerm.toLowerCase()) ||
+                        p.description.toLowerCase().includes(appState.searchTerm.toLowerCase())
+                    );
+                }
+
+                if (filteredProducts.length === 0) {
+                    productContainer.innerHTML = `
+                        <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: white;">
+                            <h3>🔍 Tidak ada produk ditemukan</h3>
+                            <p>Coba ubah filter atau kata kunci pencarian.</p>
+                            ${appState.searchTerm ? `<button onclick="clearSearch()" style="margin-top: 1rem; padding: 0.5rem 1rem; border: none; border-radius: 5px; background: rgba(255,255,255,0.2); color: white; cursor: pointer;">❌ Hapus Pencarian</button>` : ''}
+                        </div>
+                    `;
+                    return;
+                }
+                
+                let html = '';
+                filteredProducts.forEach((product, index) => {
+                    const adminButtons = appState.currentUser === 'admin' ? `
+                        <div class="product-actions">
+                            <button class="btn btn-edit" onclick="openEditProductModal('${product.id}')">✏️ Edit</button>
+                            <button class="btn btn-delete" onclick="deleteProduct('${product.id}')">🗑️ Hapus</button>
+                        </div>
+                    ` : '';
+                    
+                    // Get images array (prioritize new format, fallback to old)
+                    const images = product.images && product.images.length > 0 ? product.images : 
+                                 (product.image ? [product.image] : []);
+                    
+                    let imageHTML = '';
+                    
+                    if (images.length > 1) {
+                        // Multiple images - create carousel
+                        const carouselId = `carousel-${product.id}-${index}`;
+                        imageHTML = `
+                            <div class="product-image-carousel" id="${carouselId}" onclick="openProductGallery('${product.id}')" style="cursor: pointer;" title="Klik untuk buka gallery • Swipe untuk lihat foto lain">
+                                <div class="carousel-images" style="width: ${images.length * 100}%;">
+                                    ${images.map(img => `<img src="${img}" alt="${product.name}" loading="lazy" style="width: ${100/images.length}%;" onerror="this.style.display='none';">`).join('')}
+                                </div>
+                                
+                                <!-- Navigation Arrows -->
+                                <button onclick="event.stopPropagation(); changeCarouselImage(document.getElementById('${carouselId}'), 'prev')" 
+                                        class="carousel-nav" 
+                                        style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); 
+                                        background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; 
+                                        width: 35px; height: 35px; cursor: pointer; font-size: 1.1rem; z-index: 10; 
+                                        display: flex; align-items: center; justify-content: center;">❮</button>
+                                
+                                <button onclick="event.stopPropagation(); changeCarouselImage(document.getElementById('${carouselId}'), 'next')" 
+                                        class="carousel-nav" 
+                                        style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); 
+                                        background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; 
+                                        width: 35px; height: 35px; cursor: pointer; font-size: 1.1rem; z-index: 10; 
+                                        display: flex; align-items: center; justify-content: center;">❯</button>
+                                
+                                <!-- Indicators -->
+                                <div class="carousel-indicators" style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; z-index: 10;">
+                                    ${images.map((_, idx) => `
+                                        <button onclick="event.stopPropagation(); changeCarouselImage(document.getElementById('${carouselId}'), ${idx})" 
+                                                class="indicator ${idx === 0 ? 'active' : ''}" 
+                                                style="width: 10px; height: 10px; border-radius: 50%; border: none; cursor: pointer; 
+                                                background: ${idx === 0 ? 'white' : 'rgba(255,255,255,0.5)'}; 
+                                                transition: all 0.3s ease;"
+                                                title="Foto ${idx + 1}"></button>
+                                    `).join('')}
+                                </div>
+                                
+                                <!-- Image Counter -->
+                                <div style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 0.3rem 0.6rem; border-radius: 15px; font-size: 0.8rem; z-index: 10;">
+                                    📸 ${images.length}
+                                </div>
+                                
+                                <!-- Gallery Icon -->
+                                <div style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7); color: white; padding: 0.3rem 0.6rem; border-radius: 15px; font-size: 0.8rem; z-index: 10; opacity: 0.9;">
+                                    🖼️
+                                </div>
+                            </div>
+                        `;
+                    } else if (images.length === 1) {
+                        // Single image
+                        imageHTML = `
+                            <div class="product-image" onclick="openImageModal('${images[0]}', '${product.name}', 'Rp ${product.price.toLocaleString('id-ID')}')" style="cursor: pointer;" title="Klik untuk memperbesar gambar">
+                                <img src="${images[0]}" alt="${product.name}" loading="lazy" onerror="this.style.display='none'; this.parentNode.innerHTML='${product.emoji}'" title="Klik untuk memperbesar">
+                                <div style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 0.5rem; border-radius: 50%; font-size: 0.9rem; transition: all 0.3s; opacity: 0.8;">🔍</div>
+                            </div>
+                        `;
+                    } else {
+                        // No image - show emoji
+                        imageHTML = `
+                            <div class="product-image">
+                                ${product.emoji || '📦'}
+                            </div>
+                        `;
+                    }
+                    
+                    html += `
+                        <div class="product-card" data-category="${product.category}">
+                            ${imageHTML}
+                            <div class="product-info">
+                                <div class="product-title">${product.name}</div>
+                                <div class="product-price">Rp ${product.price.toLocaleString('id-ID')}</div>
+                                <div class="product-description">${product.description}</div>
+                                ${adminButtons}
+                                <button class="btn" onclick="openOrderModal('${product.id}')">🛒 Pesan Sekarang</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                productContainer.innerHTML = html;
+                
+                // Initialize carousel functionality after products are rendered
+                setTimeout(() => {
+                    console.log('🎠 Initializing carousels after product load...');
+                    initCarousels();
+                    setupCarouselAutoPlay();
+                }, 300);
+            }, 100);
+        }
+
+        function updateCategoryOptions() {
+            const categorySelect = document.getElementById('productCategory');
+            if (!categorySelect) return;
+
+            categorySelect.innerHTML = '<option value="">Pilih Kategori</option>';
+            
+            appState.categories.forEach(category => {
+                categorySelect.innerHTML += `<option value="${category.id}">${category.emoji} ${category.name}</option>`;
+            });
+        }
+
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            appState.searchTerm = '';
+            loadProducts();
+        }
+
+        // ===== SEARCH AND FILTER =====
+        function handleSearch(event) {
+            if (event.key === 'Enter') {
+                searchProducts();
+            } else {
+                clearTimeout(window.searchTimeout);
+                window.searchTimeout = setTimeout(() => {
+                    const searchTerm = event.target.value.trim();
+                    if (searchTerm.length >= 2 || searchTerm.length === 0) {
+                        appState.searchTerm = searchTerm;
+                        loadProducts();
+                    }
+                }, 300);
+            }
+        }
+
+        function searchProducts() {
+            const searchInput = document.getElementById('searchInput');
+            appState.searchTerm = searchInput.value.trim();
+            loadProducts();
+            
+            if (appState.searchTerm && document.querySelectorAll('.product-card').length === 0) {
+                showNotification(`Tidak ada produk ditemukan untuk "${appState.searchTerm}"`, 'error');
+            }
+        }
+
+        function filterProducts(category) {
+            appState.currentFilter = category;
+            appState.searchTerm = '';
+            document.getElementById('searchInput').value = '';
+            loadProducts();
+            loadCategories();
+            
+            const categoryName = category === 'all' ? 'Semua Produk' : 
+                appState.categories.find(c => c.id === category)?.name || '';
+            document.getElementById('searchInput').placeholder = `Cari di ${categoryName}...`;
+        }
+
+        // ===== PRODUCT IMAGE CAROUSEL =====
+        function changeCarouselImage(carousel, direction) {
+            if (!carousel) {
+                console.error('Carousel element not found');
+                return;
+            }
+            
+            const imagesContainer = carousel.querySelector('.carousel-images');
+            const indicators = carousel.querySelectorAll('.indicator');
+            const totalImages = indicators.length;
+            
+            if (totalImages <= 1) {
+                console.log('Carousel has only', totalImages, 'images, skipping navigation');
+                return;
+            }
+            
+            let currentIndex = Array.from(indicators).findIndex(ind => ind.classList.contains('active'));
+            if (currentIndex === -1) currentIndex = 0;
+            
+            console.log(`Carousel navigation: current=${currentIndex}, direction=${direction}, total=${totalImages}`);
+            
+            if (direction === 'next') {
+                currentIndex = (currentIndex + 1) % totalImages;
+            } else if (direction === 'prev') {
+                currentIndex = (currentIndex - 1 + totalImages) % totalImages;
+            } else if (typeof direction === 'number') {
+                currentIndex = Math.max(0, Math.min(direction, totalImages - 1));
+            }
+            
+            console.log(`Moving to index: ${currentIndex}`);
+            
+            // Update carousel position - fix calculation
+            const translateX = -(currentIndex * (100 / totalImages));
+            if (imagesContainer) {
+                imagesContainer.style.transform = `translateX(${translateX}%)`;
+                console.log(`Applied transform: translateX(${translateX}%)`);
+            } else {
+                console.error('Images container not found in carousel');
+                return;
+            }
+            
+            // Update indicators
+            indicators.forEach((ind, idx) => {
+                const isActive = idx === currentIndex;
+                ind.classList.toggle('active', isActive);
+                ind.style.background = isActive ? 'white' : 'rgba(255,255,255,0.5)';
+            });
+            
+            // Store current index
+            carousel.dataset.currentIndex = currentIndex;
+            
+            // Visual feedback
+            showCarouselFeedback(carousel, currentIndex, totalImages);
+        }
+        
+        function showCarouselFeedback(carousel, currentIndex, totalImages) {
+            // Remove existing feedback
+            const existingFeedback = carousel.querySelector('.carousel-feedback');
+            if (existingFeedback) {
+                existingFeedback.remove();
+            }
+            
+            // Create new feedback
+            const feedback = document.createElement('div');
+            feedback.className = 'carousel-feedback';
+            feedback.textContent = `${currentIndex + 1}/${totalImages}`;
+            feedback.style.cssText = `
+                position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                background: rgba(0,0,0,0.8); color: white; padding: 0.5rem 1rem;
+                border-radius: 20px; font-size: 0.9rem; font-weight: bold;
+                z-index: 15; pointer-events: none;
+                animation: carouselFeedback 1s ease;
+            `;
+            
+            carousel.appendChild(feedback);
+            
+            // Remove after animation
+            setTimeout(() => {
+                if (feedback.parentNode) {
+                    feedback.remove();
+                }
+            }, 1000);
+        }
+
+        function initCarousels() {
+            console.log('🎠 Initializing carousels...');
+            const carousels = document.querySelectorAll('.product-image-carousel');
+            console.log(`Found ${carousels.length} carousels`);
+            
+            carousels.forEach((carousel, index) => {
+                const indicators = carousel.querySelectorAll('.indicator');
+                const images = carousel.querySelectorAll('.carousel-images img');
+                const imagesContainer = carousel.querySelector('.carousel-images');
+                
+                console.log(`Carousel ${index} (${carousel.id}): ${indicators.length} indicators, ${images.length} images`);
+                
+                if (indicators.length > 1 && imagesContainer) {
+                    // Initialize first image as active
+                    carousel.dataset.currentIndex = '0';
+                    
+                    // Ensure first indicator is active
+                    indicators.forEach((ind, idx) => {
+                        const isActive = idx === 0;
+                        ind.classList.toggle('active', isActive);
+                        ind.style.background = isActive ? 'white' : 'rgba(255,255,255,0.5)';
+                    });
+                    
+                    // Set initial position - fix width calculation
+                    const totalImages = images.length;
+                    imagesContainer.style.width = `${totalImages * 100}%`;
+                    imagesContainer.style.transform = 'translateX(0%)';
+                    
+                    // Ensure each image has correct width
+                    images.forEach(img => {
+                        img.style.width = `${100 / totalImages}%`;
+                        img.style.flexShrink = '0';
+                    });
+                    
+                    console.log(`✅ Initialized carousel ${index} with ${totalImages} images`);
+                    
+                    // Add touch/swipe support
+                    addCarouselTouchSupport(carousel);
+                } else {
+                    console.log(`⏭️ Skipping carousel ${index} - only ${indicators.length} images or missing container`);
+                }
+            });
+            
+            console.log('🎠 Carousel initialization complete');
+        }
+        
+        function addCarouselTouchSupport(carousel) {
+            let touchStartX = 0;
+            let touchStartY = 0;
+            let touchStartTime = 0;
+            let isSwiping = false;
+            
+            carousel.addEventListener('touchstart', function(e) {
+                const touch = e.touches[0];
+                touchStartX = touch.clientX;
+                touchStartY = touch.clientY;
+                touchStartTime = Date.now();
+                isSwiping = false;
+                
+                // Stop auto-play during touch
+                if (carousel._autoPlayInterval) {
+                    clearInterval(carousel._autoPlayInterval);
+                }
+            }, { passive: true });
+            
+            carousel.addEventListener('touchmove', function(e) {
+                if (!touchStartX) return;
+                
+                const touch = e.touches[0];
+                const diffX = touchStartX - touch.clientX;
+                const diffY = touchStartY - touch.clientY;
+                
+                // If horizontal swipe is more significant than vertical
+                if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 20) {
+                    isSwiping = true;
+                    e.preventDefault(); // Prevent scrolling
+                }
+            }, { passive: false });
+            
+            carousel.addEventListener('touchend', function(e) {
+                if (!touchStartX || !isSwiping) return;
+                
+                const touch = e.changedTouches[0];
+                const diffX = touchStartX - touch.clientX;
+                const timeDiff = Date.now() - touchStartTime;
+                
+                // Swipe threshold: distance > 50px and time < 300ms
+                if (Math.abs(diffX) > 50 && timeDiff < 300) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    if (diffX > 0) {
+                        // Swipe left - next image
+                        changeCarouselImage(carousel, 'next');
+                    } else {
+                        // Swipe right - previous image
+                        changeCarouselImage(carousel, 'prev');
+                    }
+                    
+                    console.log(`📱 Swipe ${diffX > 0 ? 'left' : 'right'} detected on carousel ${carousel.id}`);
+                }
+                
+                // Reset values
+                touchStartX = 0;
+                touchStartY = 0;
+                isSwiping = false;
+                
+                // Restart auto-play after touch interaction
+                setTimeout(() => {
+                    setupSingleCarouselAutoPlay(carousel);
+                }, 2000);
+            }, { passive: false });
+        }
+
+        function setupCarouselAutoPlay() {
+            console.log('🔄 Setting up auto-play for all carousels...');
+            const carousels = document.querySelectorAll('.product-image-carousel');
+            
+            carousels.forEach(carousel => {
+                setupSingleCarouselAutoPlay(carousel);
+            });
+            
+            console.log(`✅ Auto-play setup complete for ${carousels.length} carousels`);
+        }
+
+        function setupSingleCarouselAutoPlay(carousel) {
+            const indicators = carousel.querySelectorAll('.indicator');
+            if (indicators.length <= 1) {
+                console.log(`⏭️ Skipping auto-play for carousel ${carousel.id} - only ${indicators.length} images`);
+                return;
+            }
+            
+            // Clear existing interval
+            if (carousel._autoPlayInterval) {
+                clearInterval(carousel._autoPlayInterval);
+                carousel._autoPlayInterval = null;
+            }
+            
+            // Start new auto-play
+            carousel._autoPlayInterval = setInterval(() => {
+                // Only auto-advance if carousel is visible and not being interacted with
+                if (isCarouselVisible(carousel) && !carousel.dataset.paused) {
+                    changeCarouselImage(carousel, 'next');
+                }
+            }, 4000); // Change every 4 seconds
+            
+            // Pause on hover (desktop)
+            carousel.addEventListener('mouseenter', () => {
+                carousel.dataset.paused = 'true';
+                console.log(`⏸️ Paused auto-play for carousel ${carousel.id}`);
+            });
+            
+            carousel.addEventListener('mouseleave', () => {
+                carousel.dataset.paused = 'false';
+                console.log(`▶️ Resumed auto-play for carousel ${carousel.id}`);
+            });
+            
+            console.log(`✅ Auto-play setup for carousel ${carousel.id} with ${indicators.length} images`);
+        }
+        
+        function isCarouselVisible(carousel) {
+            const rect = carousel.getBoundingClientRect();
+            const windowHeight = window.innerHeight || document.documentElement.clientHeight;
+            const windowWidth = window.innerWidth || document.documentElement.clientWidth;
+            
+            return (
+                rect.top < windowHeight &&
+                rect.bottom > 0 &&
+                rect.left < windowWidth &&
+                rect.right > 0 &&
+                rect.width > 0 &&
+                rect.height > 0
+            );
+        }
+
+        // Manual carousel test function
+        function testCarousel() {
+            console.log('🎠 Testing Carousel Functionality');
+            
+            const carousels = document.querySelectorAll('.product-image-carousel');
+            console.log(`Found ${carousels.length} carousels to test`);
+            
+            if (carousels.length === 0) {
+                showNotification('Tidak ada carousel ditemukan! Upload produk dengan multiple images dulu.', 'error');
+                return;
+            }
+            
+            let testedCount = 0;
+            
+            carousels.forEach((carousel, index) => {
+                const indicators = carousel.querySelectorAll('.indicator');
+                const images = carousel.querySelectorAll('.carousel-images img');
+                const imagesContainer = carousel.querySelector('.carousel-images');
+                
+                console.log(`Testing carousel ${index + 1} (${carousel.id}):`, {
+                    indicators: indicators.length,
+                    images: images.length,
+                    hasContainer: !!imagesContainer,
+                    currentIndex: carousel.dataset.currentIndex
+                });
+                
+                if (indicators.length > 1) {
+                    testedCount++;
+                    
+                    // Test navigation sequence
+                    setTimeout(() => {
+                        console.log(`🎠 Testing carousel ${index + 1} - moving to next (2/${indicators.length})`);
+                        changeCarouselImage(carousel, 'next');
+                        
+                        // Test going back
+                        setTimeout(() => {
+                            console.log(`🎠 Testing carousel ${index + 1} - moving to prev (1/${indicators.length})`);
+                            changeCarouselImage(carousel, 'prev');
+                            
+                            // Test direct navigation
+                            if (indicators.length > 2) {
+                                setTimeout(() => {
+                                    console.log(`🎠 Testing carousel ${index + 1} - jumping to last image`);
+                                    changeCarouselImage(carousel, indicators.length - 1);
+                                }, 1000);
+                            }
+                        }, 1000);
+                    }, index * 3000); // Stagger tests
+                } else {
+                    console.log(`⏭️ Skipping carousel ${index + 1} - only ${indicators.length} images`);
+                }
+            });
+            
+            const message = testedCount > 0 ? 
+                `🎠 Testing ${testedCount} carousels with multiple images. Check console dan lihat animasi!` :
+                `⚠️ Tidak ada carousel dengan multiple images untuk ditest!`;
+            
+            showNotification(message, testedCount > 0 ? 'success' : 'error');
+            
+            // Summary after all tests
+            setTimeout(() => {
+                console.log('🎠 Carousel Test Summary:');
+                console.log(`Total carousels found: ${carousels.length}`);
+                console.log(`Carousels tested: ${testedCount}`);
+                console.log(`Carousels skipped: ${carousels.length - testedCount}`);
+                
+                if (testedCount === 0) {
+                    console.log('💡 Tip: Upload produk dengan 2+ gambar untuk test carousel functionality');
+                }
+            }, carousels.length * 3000 + 2000);
+        }
+
+        // Force refresh carousels
+        function refreshCarousels() {
+            console.log('🔄 Force refreshing carousels...');
+            
+            // Clear all existing auto-play intervals
+            const carousels = document.querySelectorAll('.product-image-carousel');
+            let clearedIntervals = 0;
+            
+            carousels.forEach(carousel => {
+                if (carousel._autoPlayInterval) {
+                    clearInterval(carousel._autoPlayInterval);
+                    carousel._autoPlayInterval = null;
+                    clearedIntervals++;
+                }
+                // Reset paused state
+                carousel.dataset.paused = 'false';
+                carousel.dataset.currentIndex = '0';
+            });
+            
+            console.log(`Cleared ${clearedIntervals} auto-play intervals`);
+            
+            // Re-initialize with delay to ensure DOM is ready
+            setTimeout(() => {
+                console.log('🎠 Re-initializing carousels...');
+                initCarousels();
+                
+                setTimeout(() => {
+                    console.log('🔄 Setting up new auto-play...');
+                    setupCarouselAutoPlay();
+                    
+                    const activeCarousels = document.querySelectorAll('.product-image-carousel .indicator').length;
+                    const multiImageCarousels = document.querySelectorAll('.product-image-carousel').length;
+                    
+                    showNotification(`✅ Refreshed ${multiImageCarousels} carousels successfully!`, 'success');
+                    console.log(`✅ Carousel refresh complete:`, {
+                        totalCarousels: multiImageCarousels,
+                        totalIndicators: activeCarousels,
+                        clearedIntervals: clearedIntervals
+                    });
+                }, 200);
+            }, 100);
+        }
+
+        function openProductGallery(productId) {
+            const product = appState.products.find(p => p.id === productId);
+            if (!product) return;
+            
+            const images = product.images || (product.image ? [product.image] : []);
+            if (images.length === 0) return;
+            
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                background: rgba(0,0,0,0.95); z-index: 3000; 
+                display: flex; flex-direction: column; align-items: center; justify-content: center;
+            `;
+            
+            modal.innerHTML = `
+                <div style="position: relative; max-width: 90vw; max-height: 80vh;">
+                    <img id="galleryMainImage" src="${images[0]}" 
+                         style="max-width: 100%; max-height: 80vh; object-fit: contain; border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.5);" 
+                         alt="${product.name}">
+                    
+                    ${images.length > 1 ? `
+                        <button onclick="changeGalleryImage('prev')" 
+                                style="position: absolute; left: -60px; top: 50%; transform: translateY(-50%); 
+                                background: rgba(255,255,255,0.2); color: white; border: none; border-radius: 50%; 
+                                width: 50px; height: 50px; cursor: pointer; font-size: 1.2rem; backdrop-filter: blur(10px);">❮</button>
+                        <button onclick="changeGalleryImage('next')" 
+                                style="position: absolute; right: -60px; top: 50%; transform: translateY(-50%); 
+                                background: rgba(255,255,255,0.2); color: white; border: none; border-radius: 50%; 
+                                width: 50px; height: 50px; cursor: pointer; font-size: 1.2rem; backdrop-filter: blur(10px);">❯</button>
+                    ` : ''}
+                </div>
+                
+                <div style="position: fixed; top: 20px; right: 20px;">
+                    <button onclick="this.parentElement.parentElement.remove(); document.body.style.overflow='auto'" 
+                            style="background: rgba(255,255,255,0.2); color: white; border: none; border-radius: 50%; 
+                            width: 50px; height: 50px; cursor: pointer; font-size: 1.5rem; backdrop-filter: blur(10px);">×</button>
+                </div>
+                
+                <div style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); 
+                     background: rgba(0,0,0,0.7); color: white; padding: 1rem 2rem; border-radius: 25px; backdrop-filter: blur(10px);">
+                    <div style="text-align: center;">
+                        <div style="font-weight: bold; margin-bottom: 0.5rem;">${product.name}</div>
+                        <div style="color: #4facfe;">Rp ${product.price.toLocaleString('id-ID')}</div>
+                        ${images.length > 1 ? `<div style="font-size: 0.8rem; opacity: 0.8; margin-top: 0.5rem;">Gambar <span id="currentImageIndex">1</span> dari ${images.length}</div>` : ''}
+                    </div>
+                </div>
+                
+                ${images.length > 1 ? `
+                    <div style="position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; max-width: 80vw; overflow-x: auto; padding: 10px;">
+                        ${images.map((img, idx) => `
+                            <img src="${img}" onclick="changeGalleryImage(${idx})" 
+                                 style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; cursor: pointer; 
+                                 border: ${idx === 0 ? '3px solid white' : '3px solid transparent'}; opacity: ${idx === 0 ? '1' : '0.7'};" 
+                                 class="gallery-thumbnail" data-index="${idx}">
+                        `).join('')}
+                    </div>
+                ` : ''}
+            `;
+            
+            document.body.appendChild(modal);
+            document.body.style.overflow = 'hidden';
+            
+            let currentGalleryIndex = 0;
+            
+            window.changeGalleryImage = function(direction) {
+                if (direction === 'next') {
+                    currentGalleryIndex = (currentGalleryIndex + 1) % images.length;
+                } else if (direction === 'prev') {
+                    currentGalleryIndex = (currentGalleryIndex - 1 + images.length) % images.length;
+                } else if (typeof direction === 'number') {
+                    currentGalleryIndex = direction;
+                }
+                
+                // Update main image
+                modal.querySelector('#galleryMainImage').src = images[currentGalleryIndex];
+                
+                // Update counter
+                const counter = modal.querySelector('#currentImageIndex');
+                if (counter) counter.textContent = currentGalleryIndex + 1;
+                
+                // Update thumbnails
+                const thumbnails = modal.querySelectorAll('.gallery-thumbnail');
+                thumbnails.forEach((thumb, idx) => {
+                    thumb.style.border = idx === currentGalleryIndex ? '3px solid white' : '3px solid transparent';
+                    thumb.style.opacity = idx === currentGalleryIndex ? '1' : '0.7';
+                });
+            };
+            
+            // Close on background click
+            modal.onclick = function(e) {
+                if (e.target === modal) {
+                    document.body.style.overflow = 'auto';
+                    modal.remove();
+                }
+            };
+            
+            // Keyboard navigation
+            document.addEventListener('keydown', function handleGalleryKeys(e) {
+                if (e.key === 'Escape') {
+                    document.body.style.overflow = 'auto';
+                    modal.remove();
+                    document.removeEventListener('keydown', handleGalleryKeys);
+                } else if (e.key === 'ArrowRight' && images.length > 1) {
+                    changeGalleryImage('next');
+                } else if (e.key === 'ArrowLeft' && images.length > 1) {
+                    changeGalleryImage('prev');
+                }
+            });
+        }
+
+        // ===== IMAGE ZOOM FUNCTIONALITY =====
+        function openImageModal(imageSrc, productName, productPrice) {
+            const modal = document.getElementById('imageModal');
+            const zoomedImage = document.getElementById('zoomedImage');
+            const imageInfo = document.getElementById('imageInfo');
+            
+            zoomedImage.src = imageSrc;
+            imageInfo.innerHTML = `
+                <div style="text-align: center;">
+                    <div style="font-weight: bold; margin-bottom: 0.5rem;">${productName}</div>
+                    <div style="color: #4facfe;">${productPrice}</div>
+                    <div style="font-size: 0.8rem; margin-top: 0.5rem; opacity: 0.8;">Tekan ESC atau klik di luar untuk tutup</div>
+                </div>
+            `;
+            
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden'; // Prevent scrolling
+            
+            // Add fade in animation
+            modal.style.opacity = '0';
+            setTimeout(() => {
+                modal.style.transition = 'opacity 0.3s ease';
+                modal.style.opacity = '1';
+            }, 10);
+
+            // Mobile touch handling for better UX
+            let touchStartTime = 0;
+            zoomedImage.addEventListener('touchstart', function(e) {
+                touchStartTime = Date.now();
+            });
+
+            zoomedImage.addEventListener('touchend', function(e) {
+                const touchDuration = Date.now() - touchStartTime;
+                if (touchDuration < 200) { // Quick tap
+                    closeImageModal();
+                }
+            });
+        }
+
+        function closeImageModal() {
+            const modal = document.getElementById('imageModal');
+            document.body.style.overflow = 'auto'; // Restore scrolling
+            
+            // Add fade out animation
+            modal.style.transition = 'opacity 0.3s ease';
+            modal.style.opacity = '0';
+            setTimeout(() => {
+                modal.style.display = 'none';
+                modal.style.transition = '';
+            }, 300);
         }
 
         // ===== CATEGORY MANAGEMENT =====
@@ -1979,193 +2693,7 @@ Klik OK untuk melanjutkan.`);
             `;
         }
 
-        // ===== DISPLAY FUNCTIONS =====
-        function loadCategories() {
-            const categoriesContainer = document.getElementById('categoriesSection');
-            
-            if (appState.categories.length === 0) {
-                categoriesContainer.innerHTML = '';
-                return;
-            }
-
-            let html = `
-                <div class="category-card ${appState.currentFilter === 'all' ? 'active' : ''}" onclick="filterProducts('all')">
-                    <h3>🛍️ Semua Produk</h3>
-                    <p>${appState.products.length} item</p>
-                </div>
-            `;
-
-            appState.categories.forEach(category => {
-                const productCount = appState.products.filter(p => p.category === category.id).length;
-                html += `
-                    <div class="category-card ${appState.currentFilter === category.id ? 'active' : ''}" onclick="filterProducts('${category.id}')">
-                        <h3>${category.emoji} ${category.name}</h3>
-                        <p>${category.description}</p>
-                        <small>${productCount} produk</small>
-                    </div>
-                `;
-            });
-
-            categoriesContainer.innerHTML = html;
-        }
-
-        function loadProducts() {
-            const productContainer = document.getElementById('products');
-            
-            productContainer.innerHTML = `
-                <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: white;">
-                    <div style="font-size: 2rem; margin-bottom: 1rem;">⏳</div>
-                    <p>Memuat produk dari Firebase...</p>
-                </div>
-            `;
-            
-            setTimeout(() => {
-                if (appState.products.length === 0) {
-                    productContainer.innerHTML = `
-                        <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: white;">
-                            <h3>📦 Belum ada produk</h3>
-                            <p>${appState.currentUser === 'admin' ? 'Tambahkan produk pertama melalui Admin Panel!' : 'Belum ada produk tersedia saat ini.'}</p>
-                        </div>
-                    `;
-                    return;
-                }
-
-                let filteredProducts = appState.products;
-                
-                if (appState.currentFilter !== 'all') {
-                    filteredProducts = filteredProducts.filter(p => p.category === appState.currentFilter);
-                }
-                
-                if (appState.searchTerm) {
-                    filteredProducts = filteredProducts.filter(p => 
-                        p.name.toLowerCase().includes(appState.searchTerm.toLowerCase()) ||
-                        p.description.toLowerCase().includes(appState.searchTerm.toLowerCase())
-                    );
-                }
-
-                if (filteredProducts.length === 0) {
-                    productContainer.innerHTML = `
-                        <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: white;">
-                            <h3>🔍 Tidak ada produk ditemukan</h3>
-                            <p>Coba ubah filter atau kata kunci pencarian.</p>
-                            ${appState.searchTerm ? `<button onclick="clearSearch()" style="margin-top: 1rem; padding: 0.5rem 1rem; border: none; border-radius: 5px; background: rgba(255,255,255,0.2); color: white; cursor: pointer;">❌ Hapus Pencarian</button>` : ''}
-                        </div>
-                    `;
-                    return;
-                }
-                
-                let html = '';
-                filteredProducts.forEach(product => {
-                    const adminButtons = appState.currentUser === 'admin' ? `
-                        <div class="product-actions">
-                            <button class="btn btn-edit" onclick="openEditProductModal('${product.id}')">✏️ Edit</button>
-                            <button class="btn btn-delete" onclick="deleteProduct('${product.id}')">🗑️ Hapus</button>
-                        </div>
-                    ` : '';
-                    
-                    html += `
-                        <div class="product-card" data-category="${product.category}">
-                            <div class="product-image" ${product.image ? `onclick="openImageModal('${product.image}', '${product.name}', 'Rp ${product.price.toLocaleString('id-ID')}')" style="cursor: pointer;" title="Klik untuk memperbesar gambar"` : ''}>
-                                ${product.image ? `<img src="${product.image}" alt="${product.name}" loading="lazy" onerror="this.style.display='none'; this.parentNode.innerHTML='${product.emoji}'" title="Klik untuk memperbesar">` : product.emoji}
-                                ${product.image ? '<div style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 0.5rem; border-radius: 50%; font-size: 0.9rem; transition: all 0.3s; opacity: 0.8;">🔍</div>' : ''}
-                            </div>
-                            <div class="product-info">
-                                <div class="product-title">${product.name}</div>
-                                <div class="product-price">Rp ${product.price.toLocaleString('id-ID')}</div>
-                                <div class="product-description">${product.description}</div>
-                                ${adminButtons}
-                                <button class="btn" onclick="openOrderModal('${product.id}')">🛒 Pesan Sekarang</button>
-                            </div>
-                        </div>
-                    `;
-                });
-                
-                productContainer.innerHTML = html;
-            }, 100);
-        }
-
-        function updateCategoryOptions() {
-            const categorySelect = document.getElementById('productCategory');
-            if (!categorySelect) return;
-
-            categorySelect.innerHTML = '<option value="">Pilih Kategori</option>';
-            
-            appState.categories.forEach(category => {
-                categorySelect.innerHTML += `<option value="${category.id}">${category.emoji} ${category.name}</option>`;
-            });
-        }
-
-        function clearSearch() {
-            document.getElementById('searchInput').value = '';
-            appState.searchTerm = '';
-            loadProducts();
-        }
-
-        // ===== SEARCH AND FILTER =====
-        function handleSearch(event) {
-            if (event.key === 'Enter') {
-                searchProducts();
-            } else {
-                clearTimeout(window.searchTimeout);
-                window.searchTimeout = setTimeout(() => {
-                    const searchTerm = event.target.value.trim();
-                    if (searchTerm.length >= 2 || searchTerm.length === 0) {
-                        appState.searchTerm = searchTerm;
-                        loadProducts();
-                    }
-                }, 300);
-            }
-        }
-
-        function searchProducts() {
-            const searchInput = document.getElementById('searchInput');
-            appState.searchTerm = searchInput.value.trim();
-            loadProducts();
-            
-            if (appState.searchTerm && document.querySelectorAll('.product-card').length === 0) {
-                showNotification(`Tidak ada produk ditemukan untuk "${appState.searchTerm}"`, 'error');
-            }
-        }
-
-        function filterProducts(category) {
-            appState.currentFilter = category;
-            appState.searchTerm = '';
-            document.getElementById('searchInput').value = '';
-            loadProducts();
-            loadCategories();
-            
-            const categoryName = category === 'all' ? 'Semua Produk' : 
-                appState.categories.find(c => c.id === category)?.name || '';
-            document.getElementById('searchInput').placeholder = `Cari di ${categoryName}...`;
-        }
-
         // ===== WHATSAPP AUTO-LINK FUNCTIONS =====
-        function makeWhatsAppClickable(text) {
-            // Convert WhatsApp numbers to clickable links
-            const whatsappRegex = /(\+?62[\s\-]?8[1-9][0-9][\s\-]?[0-9]{3,4}[\s\-]?[0-9]{3,4})/g;
-            return text.replace(whatsappRegex, function(match) {
-                const cleanNumber = match.replace(/[\s\-]/g, '');
-                const whatsappUrl = `https://wa.me/${cleanNumber}`;
-                return `<a href="${whatsappUrl}" target="_blank" style="color: #25d366; text-decoration: underline; font-weight: bold;" title="Klik untuk chat WhatsApp">📱 ${match}</a>`;
-            });
-        }
-
-        function addWhatsAppButton(phoneNumber, message = '') {
-            const cleanNumber = phoneNumber.replace(/[\s\-]/g, '');
-            const defaultMessage = message || 'Halo, saya tertarik dengan produk Anda.';
-            const whatsappUrl = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(defaultMessage)}`;
-            
-            return `<a href="${whatsappUrl}" target="_blank" 
-                style="display: inline-block; background: linear-gradient(45deg, #25d366, #128c7e); 
-                color: white; padding: 0.5rem 1rem; border-radius: 25px; text-decoration: none; 
-                font-weight: bold; margin: 0.5rem 0; transition: all 0.3s;" 
-                onmouseover="this.style.transform='scale(1.05)'" 
-                onmouseout="this.style.transform='scale(1)'">
-                📱 Chat WhatsApp
-            </a>`;
-        }
-
-        // ===== TEST WHATSAPP FUNCTION =====
         function testWhatsApp() {
             const testMessages = [
                 'Test 1: Simple message',
@@ -2216,7 +2744,6 @@ Line 3: Time ${new Date().toLocaleString('id-ID')}`
 📱 Mobile: ${/Mobi|Android/i.test(navigator.userAgent)}
 🖥️ Platform: ${navigator.platform}
 🔒 HTTPS: ${location.protocol === 'https:'}
-🚫 Popup Blocked: ${!window.open('about:blank').close()}
 
 🧪 Test URLs:
 1. wa.me/${CONFIG.whatsappNumber}
@@ -2559,110 +3086,6 @@ Ketik "HAPUS SEMUA DATA" untuk konfirmasi:`);
             }
         }
 
-        // ===== SIMPLE CAROUSEL FUNCTIONS =====
-        function nextImage(carousel) {
-            const container = carousel.querySelector('.images-container');
-            const dots = carousel.querySelectorAll('.dots div');
-            const totalImages = dots.length;
-            
-            let currentIndex = 0;
-            dots.forEach((dot, idx) => {
-                if (dot.style.background === 'white' || dot.style.background === 'rgb(255, 255, 255)') {
-                    currentIndex = idx;
-                }
-            });
-            
-            const nextIndex = (currentIndex + 1) % totalImages;
-            goToImage(carousel, nextIndex);
-        }
-
-        function prevImage(carousel) {
-            const container = carousel.querySelector('.images-container');
-            const dots = carousel.querySelectorAll('.dots div');
-            const totalImages = dots.length;
-            
-            let currentIndex = 0;
-            dots.forEach((dot, idx) => {
-                if (dot.style.background === 'white' || dot.style.background === 'rgb(255, 255, 255)') {
-                    currentIndex = idx;
-                }
-            });
-            
-            const prevIndex = (currentIndex - 1 + totalImages) % totalImages;
-            goToImage(carousel, prevIndex);
-        }
-
-        function goToImage(carousel, index) {
-            const container = carousel.querySelector('.images-container');
-            const dots = carousel.querySelectorAll('.dots div');
-            const totalImages = dots.length;
-            
-            if (index >= totalImages || index < 0) return;
-            
-            // Move carousel
-            const translateX = -(index * (100 / totalImages));
-            container.style.transform = `translateX(${translateX}%)`;
-            
-            // Update dots
-            dots.forEach((dot, idx) => {
-                dot.style.background = idx === index ? 'white' : 'rgba(255,255,255,0.5)';
-            });
-        }
-
-        // ===== REMOVE OLD COMPLEX CAROUSEL CODE =====
-
-        // ===== IMAGE ZOOM FUNCTIONALITY =====
-        function openImageModal(imageSrc, productName, productPrice) {
-            const modal = document.getElementById('imageModal');
-            const zoomedImage = document.getElementById('zoomedImage');
-            const imageInfo = document.getElementById('imageInfo');
-            
-            zoomedImage.src = imageSrc;
-            imageInfo.innerHTML = `
-                <div style="text-align: center;">
-                    <div style="font-weight: bold; margin-bottom: 0.5rem;">${productName}</div>
-                    <div style="color: #4facfe;">${productPrice}</div>
-                    <div style="font-size: 0.8rem; margin-top: 0.5rem; opacity: 0.8;">Tekan ESC atau klik di luar untuk tutup</div>
-                </div>
-            `;
-            
-            modal.style.display = 'block';
-            document.body.style.overflow = 'hidden'; // Prevent scrolling
-            
-            // Add fade in animation
-            modal.style.opacity = '0';
-            setTimeout(() => {
-                modal.style.transition = 'opacity 0.3s ease';
-                modal.style.opacity = '1';
-            }, 10);
-
-            // Mobile touch handling for better UX
-            let touchStartTime = 0;
-            zoomedImage.addEventListener('touchstart', function(e) {
-                touchStartTime = Date.now();
-            });
-
-            zoomedImage.addEventListener('touchend', function(e) {
-                const touchDuration = Date.now() - touchStartTime;
-                if (touchDuration < 200) { // Quick tap
-                    closeImageModal();
-                }
-            });
-        }
-
-        function closeImageModal() {
-            const modal = document.getElementById('imageModal');
-            document.body.style.overflow = 'auto'; // Restore scrolling
-            
-            // Add fade out animation
-            modal.style.transition = 'opacity 0.3s ease';
-            modal.style.opacity = '0';
-            setTimeout(() => {
-                modal.style.display = 'none';
-                modal.style.transition = '';
-            }, 300);
-        }
-
         // ===== UTILITY FUNCTIONS =====
         function closeModal(modalId) {
             if (modalId === 'imageModal') {
@@ -2711,11 +3134,25 @@ Ketik "HAPUS SEMUA DATA" untuk konfirmasi:`);
             appState.currentFilter = 'all';
             appState.searchTerm = '';
             
-            console.log('🔥 Meili China Jastip App initialized!');
+            console.log('🔥 Meili China Jastip App dengan Firebase initialized!');
+            console.log(`User: ${appState.currentUser}`);
             console.log(`Products: ${appState.products.length}`);
             console.log(`Categories: ${appState.categories.length}`);
+            console.log(`Orders: ${appState.orders.length}`);
             
             showNotification('Data berhasil dimuat dari Firebase!', 'success');
+            
+            // Show carousel help for multiple image products
+            setTimeout(() => {
+                const hasMultipleImageProducts = appState.products.some(p => 
+                    (p.images && p.images.length > 1) || 
+                    (p.image && Array.isArray(p.image) && p.image.length > 1)
+                );
+                
+                if (hasMultipleImageProducts && appState.currentUser === 'customer') {
+                    showNotification('💡 Tip: Produk dengan multiple gambar bisa di-swipe atau klik panah untuk lihat semua foto!', 'success');
+                }
+            }, 3000);
         }
 
         // ===== EVENT LISTENERS =====
@@ -2891,7 +3328,7 @@ Ketik "HAPUS SEMUA DATA" untuk konfirmasi:`);
 
         // ===== GLOBAL APP OBJECT =====
         window.MeiliApp = {
-            version: '2.0 Firebase',
+            version: '2.0 Firebase + Multiple Images Carousel FIXED',
             author: 'Meili China Jastip',
             state: appState,
             config: CONFIG,
@@ -2905,31 +3342,54 @@ Ketik "HAPUS SEMUA DATA" untuk konfirmasi:`);
 
         // ===== CONSOLE WELCOME MESSAGE =====
         console.log(`
-🛍️ Meili China Jastip Admin System v2.0 - SIMPLE VERSION
-========================================================
+🛍️ Meili China Jastip Admin System v2.0 with Firebase + Multiple Images Carousel FIXED
+=====================================================================================
 ✅ Sistem berhasil dimuat!
 🔥 Firebase Firestore integration aktif!
+🎠 Multiple Images Carousel FIXED & WORKING!
+🔧 Developer Tools tersedia di window.MeiliApp
 📱 WhatsApp: 62-838-5412-8536
+📸 Instagram: @meili.china.jastip.po
 
-Fitur Tersedia:
-• 🔥 Firebase Firestore integration
-• 📸 Multiple Images Upload (SIMPLE)
-• 🎠 Simple Image Carousel dengan navigation
-• 🖼️ Image Zoom Modal
-• 📱 WhatsApp Integration
-• Manajemen Produk & Kategori
-• Order Management
-• Real-time Search & Filter
+🎉 CAROUSEL MULTIPLE IMAGES FEATURES (FIXED):
+✅ Upload multiple gambar sekaligus
+✅ Tampilan carousel dengan navigation arrows
+✅ Dot indicators untuk jump ke gambar tertentu  
+✅ Auto-play setiap 4 detik
+✅ Swipe support untuk mobile
+✅ Touch-friendly navigation
+✅ Hover to pause (desktop)
+✅ Visual feedback saat navigasi
+✅ Image counter & gallery icon
+✅ Click untuk buka full gallery modal
 
-Multiple Images:
-• Upload multiple gambar per produk
-• Simple carousel dengan prev/next button
-• Dot navigation untuk jump ke gambar
-• Mobile-friendly touch navigation
-• Klik gambar untuk zoom
+🎠 Cara Test Multiple Images:
+1. Login sebagai Admin
+2. Tambah Produk → Upload 2+ gambar sekaligus
+3. Simpan produk
+4. Lihat di halaman utama → carousel otomatis jalan!
+5. Test navigation: klik panah, dots, atau swipe (mobile)
+
+Debug Commands (Admin):
+• testCarousel() - Test semua carousel
+• refreshCarousels() - Force refresh carousel
+• initCarousels() - Re-initialize carousel
+
+Shortcut Admin:
+• Ctrl+N: Tambah Produk
+• Ctrl+B: Backup Data  
+• Ctrl+K: Focus Search
+• ESC: Tutup Modal/Gallery
+• Arrow Keys: Navigate gallery
+• Swipe: Navigate carousel (mobile)
+• Click foto: Zoom/Gallery
+• Click WA number: Chat langsung
 
 Firebase Status: Connected ✅
 Project ID: meilijastip
+Multiple Images Carousel: WORKING ✅
+
+SEKARANG SUDAH BISA UPLOAD MULTIPLE GAMBAR DAN LIHAT CAROUSEL!
         `);
     </script>
 </body>
