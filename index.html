@@ -271,6 +271,38 @@
             transform: scale(1.1);
         }
 
+        .product-image-carousel {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(45deg, #f093fb, #f5576c, #4facfe);
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .product-image-carousel:hover {
+            transform: scale(1.02);
+        }
+
+        .carousel-nav {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .product-image-carousel:hover .carousel-nav {
+            opacity: 1;
+        }
+
+        .carousel-indicators .indicator {
+            transition: all 0.3s ease;
+        }
+
+        .carousel-indicators .indicator:hover {
+            background: white !important;
+            transform: scale(1.2);
+        }
+
         .product-info {
             padding: 1.5rem;
         }
@@ -880,16 +912,16 @@
                 <div class="form-group">
                     <label>Upload Gambar:</label>
                     <div class="file-upload">
-                        <input type="file" id="productImage" accept="image/*" onchange="previewImage(this)" multiple>
+                        <input type="file" id="productImage" accept="image/*" onchange="previewImages(this)" multiple>
                         <label for="productImage" class="file-upload-label">
-                            📸 Pilih Gambar Produk (Bisa Multiple)
+                            📸 Pilih Gambar Produk (Multiple Images)
                         </label>
                     </div>
-                    <div id="imagePreviewContainer">
-                        <img id="imagePreview" class="image-preview" style="display: none;">
+                    <div id="imagePreviewContainer" style="margin-top: 1rem;">
+                        <!-- Multiple image previews will be shown here -->
                     </div>
                     <small style="color: #666; margin-top: 0.5rem; display: block;">
-                        Format: JPG, PNG, GIF, WEBP. Ukuran berapa saja (akan dikompres otomatis).
+                        Format: JPG, PNG, GIF, WEBP. Bisa upload multiple gambar sekaligus. Gambar akan dikompres otomatis.
                     </small>
                 </div>
                 <button type="submit" class="btn" style="width: 100%;">💾 Simpan Produk</button>
@@ -1399,49 +1431,228 @@
             updateCategoryOptions();
             clearImagePreviews();
             
-            if (product.image) {
-                const preview = document.getElementById('imagePreview');
-                preview.src = product.image;
-                preview.style.display = 'block';
+            // Show existing images for edit
+            if (product.images && product.images.length > 0) {
+                const imageInput = document.getElementById('productImage');
+                imageInput.processedImages = product.images;
+                displayImagePreviews(product.images);
+            } else if (product.image) {
+                // Handle old single image format
+                const imageInput = document.getElementById('productImage');
+                imageInput.processedImages = [product.image];
+                displayImagePreviews([product.image]);
             }
             
             document.getElementById('productModal').style.display = 'block';
         }
 
         function clearImagePreviews() {
-            const preview = document.getElementById('imagePreview');
-            preview.style.display = 'none';
-            preview.src = '';
+            const container = document.getElementById('imagePreviewContainer');
+            container.innerHTML = '';
         }
 
-        async function previewImage(input) {
+        async function previewImages(input) {
             if (!input.files || input.files.length === 0) return;
 
-            const preview = document.getElementById('imagePreview');
-            
-            if (input.files.length === 1) {
-                const processedImage = await ImageManager.processImage(input.files[0]);
-                if (processedImage) {
-                    preview.src = processedImage;
-                    preview.style.display = 'block';
-                    input.processedImage = processedImage;
-                } else {
-                    clearImagePreviews();
-                }
-            } else {
+            const container = document.getElementById('imagePreviewContainer');
+            container.innerHTML = '<div style="text-align: center; padding: 1rem; color: #666;">⏳ Memproses gambar...</div>';
+
+            try {
                 showNotification(`Memproses ${input.files.length} gambar...`, 'success');
+                
                 const processedImages = await ImageManager.processMultipleImages(Array.from(input.files));
                 
                 if (processedImages.length > 0) {
-                    preview.src = processedImages[0];
-                    preview.style.display = 'block';
                     input.processedImages = processedImages;
+                    displayImagePreviews(processedImages);
                     showNotification(`${processedImages.length} gambar berhasil diproses!`, 'success');
                 } else {
                     clearImagePreviews();
                     showNotification('Gagal memproses gambar!', 'error');
                 }
+            } catch (error) {
+                console.error('Error processing images:', error);
+                clearImagePreviews();
+                showNotification('Error memproses gambar!', 'error');
             }
+        }
+
+        function displayImagePreviews(images) {
+            const container = document.getElementById('imagePreviewContainer');
+            
+            let html = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem; margin-top: 1rem;">
+            `;
+            
+            images.forEach((image, index) => {
+                html += `
+                    <div style="position: relative; border: 2px solid #ddd; border-radius: 10px; overflow: hidden; background: #f8f9fa;">
+                        <img src="${image}" 
+                             style="width: 100%; height: 120px; object-fit: cover; cursor: pointer;" 
+                             onclick="openImageModal('${image}', 'Preview ${index + 1}', 'Gambar ${index + 1}')"
+                             title="Klik untuk memperbesar">
+                        <div style="position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.7); color: white; border-radius: 50%; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; cursor: pointer;" 
+                             onclick="removeImagePreview(${index})" 
+                             title="Hapus gambar">×</div>
+                        <div style="position: absolute; bottom: 5px; left: 5px; background: rgba(0,0,0,0.7); color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.7rem;">
+                            ${index + 1}
+                        </div>
+                        ${index === 0 ? '<div style="position: absolute; top: 5px; left: 5px; background: #4facfe; color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.7rem;">Utama</div>' : ''}
+                    </div>
+                `;
+            });
+            
+            html += `</div>`;
+            
+            if (images.length > 1) {
+                html += `
+                    <div style="text-align: center; margin-top: 1rem; font-size: 0.9rem; color: #666;">
+                        📸 ${images.length} gambar dipilih. Gambar pertama akan jadi foto utama.
+                        <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
+                            <button onclick="reorderImages()" style="background: #007bff; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 15px; cursor: pointer; font-size: 0.8rem;">
+                                🔄 Ubah Urutan
+                            </button>
+                            <button onclick="clearAllImages()" style="background: #dc3545; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 15px; cursor: pointer; font-size: 0.8rem;">
+                                🗑️ Hapus Semua
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else if (images.length === 1) {
+                html += `
+                    <div style="text-align: center; margin-top: 1rem; font-size: 0.9rem; color: #666;">
+                        📸 1 gambar dipilih sebagai foto produk.
+                        <button onclick="clearAllImages()" style="background: #dc3545; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 15px; cursor: pointer; font-size: 0.8rem; margin-left: 0.5rem;">
+                            🗑️ Hapus
+                        </button>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+
+        function removeImagePreview(index) {
+            const imageInput = document.getElementById('productImage');
+            if (imageInput.processedImages && imageInput.processedImages.length > index) {
+                imageInput.processedImages.splice(index, 1);
+                
+                if (imageInput.processedImages.length > 0) {
+                    displayImagePreviews(imageInput.processedImages);
+                    showNotification(`Gambar ${index + 1} dihapus`, 'success');
+                } else {
+                    clearImagePreviews();
+                    showNotification('Semua gambar dihapus', 'success');
+                }
+            }
+        }
+
+        function clearAllImages() {
+            const imageInput = document.getElementById('productImage');
+            const container = document.getElementById('imagePreviewContainer');
+            
+            if (confirm('Apakah Anda yakin ingin menghapus semua gambar?')) {
+                imageInput.value = '';
+                imageInput.processedImages = [];
+                container.innerHTML = '';
+                showNotification('Semua gambar dihapus', 'success');
+            }
+        }
+
+        function reorderImages() {
+            const imageInput = document.getElementById('productImage');
+            if (!imageInput.processedImages || imageInput.processedImages.length < 2) return;
+            
+            const images = imageInput.processedImages;
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                background: rgba(0,0,0,0.8); z-index: 3000; 
+                display: flex; align-items: center; justify-content: center;
+            `;
+            
+            let html = `
+                <div style="background: white; padding: 2rem; border-radius: 15px; max-width: 90vw; max-height: 80vh; overflow-y: auto;">
+                    <h3 style="margin-bottom: 1rem; color: #333;">🔄 Ubah Urutan Gambar</h3>
+                    <p style="margin-bottom: 1rem; color: #666;">Drag & drop untuk mengubah urutan. Gambar pertama akan jadi foto utama.</p>
+                    <div id="reorderContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 1rem;">
+            `;
+            
+            images.forEach((image, index) => {
+                html += `
+                    <div draggable="true" data-index="${index}" class="reorder-item" 
+                         style="border: 2px solid #ddd; border-radius: 10px; overflow: hidden; cursor: move; position: relative;">
+                        <img src="${image}" style="width: 100%; height: 100px; object-fit: cover;">
+                        <div style="position: absolute; bottom: 5px; left: 5px; background: rgba(0,0,0,0.7); color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.7rem;">
+                            ${index + 1}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `
+                    </div>
+                    <div style="margin-top: 1rem; display: flex; gap: 1rem; justify-content: center;">
+                        <button onclick="applyReorder()" style="background: #28a745; color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 25px; cursor: pointer;">✅ Terapkan Urutan</button>
+                        <button onclick="this.parentElement.parentElement.parentElement.remove()" style="background: #dc3545; color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 25px; cursor: pointer;">❌ Batal</button>
+                    </div>
+                </div>
+            `;
+            
+            modal.innerHTML = html;
+            document.body.appendChild(modal);
+            
+            // Add drag and drop functionality
+            const container = modal.querySelector('#reorderContainer');
+            let draggedItem = null;
+            
+            container.addEventListener('dragstart', function(e) {
+                draggedItem = e.target.closest('.reorder-item');
+                draggedItem.style.opacity = '0.5';
+            });
+            
+            container.addEventListener('dragend', function(e) {
+                if (draggedItem) {
+                    draggedItem.style.opacity = '1';
+                    draggedItem = null;
+                }
+            });
+            
+            container.addEventListener('dragover', function(e) {
+                e.preventDefault();
+            });
+            
+            container.addEventListener('drop', function(e) {
+                e.preventDefault();
+                const targetItem = e.target.closest('.reorder-item');
+                
+                if (draggedItem && targetItem && draggedItem !== targetItem) {
+                    const draggedIndex = parseInt(draggedItem.dataset.index);
+                    const targetIndex = parseInt(targetItem.dataset.index);
+                    
+                    // Swap images in array
+                    const temp = images[draggedIndex];
+                    images[draggedIndex] = images[targetIndex];
+                    images[targetIndex] = temp;
+                    
+                    // Update visual order
+                    const tempContent = draggedItem.innerHTML;
+                    draggedItem.innerHTML = targetItem.innerHTML;
+                    targetItem.innerHTML = tempContent;
+                    
+                    // Update data attributes
+                    draggedItem.dataset.index = targetIndex;
+                    targetItem.dataset.index = draggedIndex;
+                }
+            });
+            
+            // Make applyReorder available globally
+            window.applyReorder = function() {
+                imageInput.processedImages = images;
+                displayImagePreviews(images);
+                modal.remove();
+                showNotification('Urutan gambar berhasil diubah!', 'success');
+            };
         }
 
         async function deleteProduct(productId) {
@@ -1459,7 +1670,7 @@
             }
         }
 
-        async function saveProduct(name, price, category, description, image) {
+        async function saveProduct(name, price, category, description, images) {
             const categoryObj = appState.categories.find(c => c.id === category);
             const emoji = categoryObj ? categoryObj.emoji : '📦';
             
@@ -1468,7 +1679,8 @@
                 price,
                 category,
                 description,
-                image,
+                images: images || [],
+                image: images && images.length > 0 ? images[0] : null, // Keep backward compatibility
                 emoji
             };
 
@@ -1881,6 +2093,9 @@ Klik OK untuk melanjutkan.`);
                 });
                 
                 productContainer.innerHTML = html;
+                
+                // Initialize carousel auto-play after products are rendered
+                setTimeout(initCarouselAutoPlay, 100);
             }, 50);
         }
 
@@ -2359,6 +2574,183 @@ Ketik "HAPUS SEMUA DATA" untuk konfirmasi:`);
             }
         }
 
+        // ===== PRODUCT IMAGE CAROUSEL =====
+        function changeCarouselImage(carousel, direction) {
+            const imagesContainer = carousel.querySelector('.carousel-images');
+            const indicators = carousel.querySelectorAll('.indicator');
+            const totalImages = indicators.length;
+            
+            let currentIndex = Array.from(indicators).findIndex(ind => ind.classList.contains('active'));
+            
+            if (direction === 'next') {
+                currentIndex = (currentIndex + 1) % totalImages;
+            } else if (direction === 'prev') {
+                currentIndex = (currentIndex - 1 + totalImages) % totalImages;
+            } else if (typeof direction === 'number') {
+                currentIndex = direction;
+            }
+            
+            // Update carousel position
+            imagesContainer.style.transform = `translateX(-${currentIndex * 100}%)`;
+            
+            // Update indicators
+            indicators.forEach((ind, idx) => {
+                ind.classList.toggle('active', idx === currentIndex);
+                ind.style.background = idx === currentIndex ? 'white' : 'rgba(255,255,255,0.5)';
+            });
+        }
+
+        // Auto-advance carousel for better showcase
+        function initCarouselAutoPlay() {
+            const carousels = document.querySelectorAll('.product-image-carousel');
+            
+            carousels.forEach(carousel => {
+                const indicators = carousel.querySelectorAll('.indicator');
+                if (indicators.length > 1) {
+                    let autoPlayInterval;
+                    
+                    const startAutoPlay = () => {
+                        autoPlayInterval = setInterval(() => {
+                            changeCarouselImage(carousel, 'next');
+                        }, 3000); // Change every 3 seconds
+                    };
+                    
+                    const stopAutoPlay = () => {
+                        if (autoPlayInterval) {
+                            clearInterval(autoPlayInterval);
+                            autoPlayInterval = null;
+                        }
+                    };
+                    
+                    // Start auto-play
+                    startAutoPlay();
+                    
+                    // Pause on hover
+                    carousel.addEventListener('mouseenter', stopAutoPlay);
+                    carousel.addEventListener('mouseleave', startAutoPlay);
+                    
+                    // Pause on touch (mobile)
+                    carousel.addEventListener('touchstart', stopAutoPlay);
+                    carousel.addEventListener('touchend', () => {
+                        setTimeout(startAutoPlay, 2000); // Resume after 2s
+                    });
+                    
+                    // Store reference for cleanup
+                    carousel._autoPlayInterval = autoPlayInterval;
+                }
+            });
+        }
+
+        function openProductGallery(productId) {
+            const product = appState.products.find(p => p.id === productId);
+            if (!product) return;
+            
+            const images = product.images || (product.image ? [product.image] : []);
+            if (images.length === 0) return;
+            
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                background: rgba(0,0,0,0.95); z-index: 3000; 
+                display: flex; flex-direction: column; align-items: center; justify-content: center;
+            `;
+            
+            modal.innerHTML = `
+                <div style="position: relative; max-width: 90vw; max-height: 80vh;">
+                    <img id="galleryMainImage" src="${images[0]}" 
+                         style="max-width: 100%; max-height: 80vh; object-fit: contain; border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.5);" 
+                         alt="${product.name}">
+                    
+                    ${images.length > 1 ? `
+                        <button onclick="changeGalleryImage('prev')" 
+                                style="position: absolute; left: -60px; top: 50%; transform: translateY(-50%); 
+                                background: rgba(255,255,255,0.2); color: white; border: none; border-radius: 50%; 
+                                width: 50px; height: 50px; cursor: pointer; font-size: 1.2rem; backdrop-filter: blur(10px);">❮</button>
+                        <button onclick="changeGalleryImage('next')" 
+                                style="position: absolute; right: -60px; top: 50%; transform: translateY(-50%); 
+                                background: rgba(255,255,255,0.2); color: white; border: none; border-radius: 50%; 
+                                width: 50px; height: 50px; cursor: pointer; font-size: 1.2rem; backdrop-filter: blur(10px);">❯</button>
+                    ` : ''}
+                </div>
+                
+                <div style="position: fixed; top: 20px; right: 20px;">
+                    <button onclick="this.parentElement.parentElement.remove()" 
+                            style="background: rgba(255,255,255,0.2); color: white; border: none; border-radius: 50%; 
+                            width: 50px; height: 50px; cursor: pointer; font-size: 1.5rem; backdrop-filter: blur(10px);">×</button>
+                </div>
+                
+                <div style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); 
+                     background: rgba(0,0,0,0.7); color: white; padding: 1rem 2rem; border-radius: 25px; backdrop-filter: blur(10px);">
+                    <div style="text-align: center;">
+                        <div style="font-weight: bold; margin-bottom: 0.5rem;">${product.name}</div>
+                        <div style="color: #4facfe;">Rp ${product.price.toLocaleString('id-ID')}</div>
+                        ${images.length > 1 ? `<div style="font-size: 0.8rem; opacity: 0.8; margin-top: 0.5rem;">Gambar <span id="currentImageIndex">1</span> dari ${images.length}</div>` : ''}
+                    </div>
+                </div>
+                
+                ${images.length > 1 ? `
+                    <div style="position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; max-width: 80vw; overflow-x: auto; padding: 10px;">
+                        ${images.map((img, idx) => `
+                            <img src="${img}" onclick="changeGalleryImage(${idx})" 
+                                 style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; cursor: pointer; 
+                                 border: ${idx === 0 ? '3px solid white' : '3px solid transparent'}; opacity: ${idx === 0 ? '1' : '0.7'};" 
+                                 class="gallery-thumbnail" data-index="${idx}">
+                        `).join('')}
+                    </div>
+                ` : ''}
+            `;
+            
+            document.body.appendChild(modal);
+            document.body.style.overflow = 'hidden';
+            
+            let currentGalleryIndex = 0;
+            
+            window.changeGalleryImage = function(direction) {
+                if (direction === 'next') {
+                    currentGalleryIndex = (currentGalleryIndex + 1) % images.length;
+                } else if (direction === 'prev') {
+                    currentGalleryIndex = (currentGalleryIndex - 1 + images.length) % images.length;
+                } else if (typeof direction === 'number') {
+                    currentGalleryIndex = direction;
+                }
+                
+                // Update main image
+                modal.querySelector('#galleryMainImage').src = images[currentGalleryIndex];
+                
+                // Update counter
+                const counter = modal.querySelector('#currentImageIndex');
+                if (counter) counter.textContent = currentGalleryIndex + 1;
+                
+                // Update thumbnails
+                const thumbnails = modal.querySelectorAll('.gallery-thumbnail');
+                thumbnails.forEach((thumb, idx) => {
+                    thumb.style.border = idx === currentGalleryIndex ? '3px solid white' : '3px solid transparent';
+                    thumb.style.opacity = idx === currentGalleryIndex ? '1' : '0.7';
+                });
+            };
+            
+            // Close on background click
+            modal.onclick = function(e) {
+                if (e.target === modal) {
+                    document.body.style.overflow = 'auto';
+                    modal.remove();
+                }
+            };
+            
+            // Keyboard navigation
+            document.addEventListener('keydown', function handleGalleryKeys(e) {
+                if (e.key === 'Escape') {
+                    document.body.style.overflow = 'auto';
+                    modal.remove();
+                    document.removeEventListener('keydown', handleGalleryKeys);
+                } else if (e.key === 'ArrowRight' && images.length > 1) {
+                    changeGalleryImage('next');
+                } else if (e.key === 'ArrowLeft' && images.length > 1) {
+                    changeGalleryImage('prev');
+                }
+            });
+        }
+
         // ===== IMAGE ZOOM FUNCTIONALITY =====
         function openImageModal(imageSrc, productName, productPrice) {
             const modal = document.getElementById('imageModal');
@@ -2496,29 +2888,26 @@ Ketik "HAPUS SEMUA DATA" untuk konfirmasi:`);
                         return;
                     }
                     
-                    let image = null;
+                    let images = [];
                     
                     if (imageInput.files && imageInput.files.length > 0) {
-                        if (imageInput.processedImage) {
-                            image = imageInput.processedImage;
-                        } else if (imageInput.processedImages && imageInput.processedImages.length > 0) {
-                            image = imageInput.processedImages[0];
+                        if (imageInput.processedImages && imageInput.processedImages.length > 0) {
+                            // Multiple images processed
+                            images = imageInput.processedImages;
                         } else {
+                            // Process images on submit
                             submitBtn.textContent = '🖼️ Memproses gambar...';
-                            if (imageInput.files.length === 1) {
-                                image = await ImageManager.processImage(imageInput.files[0]);
-                            } else {
-                                const processed = await ImageManager.processMultipleImages(Array.from(imageInput.files));
-                                image = processed[0] || null;
-                            }
+                            const processed = await ImageManager.processMultipleImages(Array.from(imageInput.files));
+                            images = processed || [];
                         }
                     } else if (appState.editingProductId) {
+                        // Keep existing images for edit
                         const existingProduct = appState.products.find(p => p.id === appState.editingProductId);
-                        image = existingProduct ? existingProduct.image : null;
+                        images = existingProduct ? (existingProduct.images || [existingProduct.image].filter(Boolean)) : [];
                     }
                     
                     submitBtn.textContent = '💾 Menyimpan ke Firebase...';
-                    await saveProduct(name, price, category, description, image);
+                    await saveProduct(name, price, category, description, images);
                     
                 } catch (error) {
                     console.error('Product save error:', error);
@@ -2639,6 +3028,60 @@ Ketik "HAPUS SEMUA DATA" untuk konfirmasi:`);
                 showNotification('Terjadi kesalahan pada aplikasi.', 'error');
             });
 
+            // Mobile touch support for carousel
+            document.addEventListener('DOMContentLoaded', function() {
+                document.addEventListener('touchstart', handleTouchStart, { passive: true });
+                document.addEventListener('touchmove', handleTouchMove, { passive: true });
+                document.addEventListener('touchend', handleTouchEnd, { passive: true });
+                
+                let touchStartX = 0;
+                let touchStartY = 0;
+                let activeCarousel = null;
+                
+                function handleTouchStart(e) {
+                    const carousel = e.target.closest('.product-image-carousel');
+                    if (carousel) {
+                        activeCarousel = carousel;
+                        touchStartX = e.touches[0].clientX;
+                        touchStartY = e.touches[0].clientY;
+                    }
+                }
+                
+                function handleTouchMove(e) {
+                    if (!activeCarousel) return;
+                    
+                    const touchX = e.touches[0].clientX;
+                    const touchY = e.touches[0].clientY;
+                    const diffX = touchStartX - touchX;
+                    const diffY = touchStartY - touchY;
+                    
+                    // If horizontal swipe is more significant than vertical
+                    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 30) {
+                        e.preventDefault();
+                    }
+                }
+                
+                function handleTouchEnd(e) {
+                    if (!activeCarousel) return;
+                    
+                    const touchEndX = e.changedTouches[0].clientX;
+                    const diffX = touchStartX - touchEndX;
+                    
+                    // Swipe threshold
+                    if (Math.abs(diffX) > 50) {
+                        if (diffX > 0) {
+                            // Swipe left - next image
+                            changeCarouselImage(activeCarousel, 'next');
+                        } else {
+                            // Swipe right - previous image
+                            changeCarouselImage(activeCarousel, 'prev');
+                        }
+                    }
+                    
+                    activeCarousel = null;
+                }
+            });
+
             console.log('Meili China Jastip - Event listeners initialized');
         });
 
@@ -2668,7 +3111,9 @@ Ketik "HAPUS SEMUA DATA" untuk konfirmasi:`);
 
 Fitur Tersedia:
 • 🔥 Firebase Firestore integration
-• 🖼️ Image Zoom Modal (klik foto untuk zoom)
+• 🖼️ Multiple Images Upload & Gallery
+• 📸 Image Carousel untuk produk multiple images
+• 🔍 Image Zoom Modal & Product Gallery
 • 📱 WhatsApp Auto-Link & Click-to-Chat
 • 📝 Order History dengan WhatsApp integration
 • 💬 Smart WhatsApp notifications
@@ -2678,12 +3123,22 @@ Fitur Tersedia:
 • Real-time Search & Filter
 • Responsive Design
 
+Image Features:
+• Multiple images per product
+• Drag & drop reorder images
+• Image carousel navigation
+• Full gallery view dengan thumbnails
+• Auto-compress untuk performance
+• Remove individual images
+• Responsive image display
+
 Shortcut Admin:
 • Ctrl+N: Tambah Produk
 • Ctrl+B: Backup Data  
 • Ctrl+K: Focus Search
-• ESC: Tutup Modal/Zoom
-• Click foto: Zoom image
+• ESC: Tutup Modal/Gallery
+• Arrow Keys: Navigate gallery
+• Click foto: Zoom/Gallery
 • Click WA number: Chat langsung
 
 WhatsApp Features:
